@@ -163,11 +163,14 @@ section h2::after {
     color: var(--text-dark);
     border-radius: 8px;
     text-align: center;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .event-card {
     background: white;
     padding: 2rem;
+    margin-bottom: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     display: inline-block;
@@ -179,21 +182,6 @@ section h2::after {
     font-weight: bold;
     color: var(--primary-red);
     margin-bottom: 0.5rem;
-}
-
-.btn-register {
-    display: inline-block;
-    background-color: var(--primary-red);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    margin-top: 1rem;
-    font-weight: bold;
-    transition: transform 0.2s;
-}
-
-.btn-register:hover {
-    transform: scale(1.05);
 }
 
 /* New Recruits */

@@ -1,0 +1,65 @@
+{
+  "chiefMessages": [
+    {
+      "text": "Retour du salbutamol pédiatrique. Aérosol pour les enfants de nouveau disponible.",
+      "author": "Groupe Approvisionnement"
+    },
+    {
+      "text": "La detecteur de CO est en maintenance, utilisez celui du sac prompt secours en attendant.",
+      "author": "Groupe Batiments"
+    },
+    {
+      "text": "Pensez à vous inscrire aux différents recyclages.",
+      "author": "Groupe formation"
+    }
+  ],
+  "amicalistMessages": [
+    {
+      "text": "Merci pour votre soutien lors de la matinée boudin."
+    },
+    {
+      "text": "N'oubliez pas de finir votre tournée de calendrier avant la fin de l'année !"
+    },
+    {
+      "text": "Inscrivez vous pour venir fêter Noël autour d'une bonne raclette ! "
+    }
+  ],
+  "recruits": [
+    {
+      "name": "Sarah Jenkins",
+      "image": "assets/images/recruit1.jpg",
+      "description": "Arrivée le 1er janvier, elle aime faire la fête."
+    },    {
+      "name": "Sarah Jenkins 2",
+      "image": "assets/images/recruit1.jpg",
+      "description": "Arrivée le 1er janvier, elle aime faire la fête."
+    },
+    {
+      "name": "Mike Ross",
+      "image": "assets/images/recruit2.jpg",
+      "description": "Arrivé le 1er février, il aime les randonnées."
+    },
+    {
+      "name": "David Kim",
+      "image": "assets/images/recruit3.jpg",
+      "description": "Arrivé le 1er Janvier, il est fan de Karaté."
+    },
+    {
+      "name": "Emily Chen",
+      "image": "assets/images/recruit4.jpg",
+      "description": "Arrivé le 1er février, elle aime les voyages."
+    }
+  ],
+  "events": [
+    {
+      "date": "15 Decembre 2025, 17H00",
+      "title": "Session de test sportif",
+      "description": "Inscription auprès de .... "
+    },
+    {
+      "date": "17 Janvier 2025, 19H30",
+      "title": "Prise de garde",
+      "description": "Garde 2 - Inventaire suivi d'une Manoeuvre SUAP. "
+    }
+  ]
+}
