@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caserne des pompiers de TMC</title>
+    <meta name="description"
+        content="Site officiel de la brigade de pompiers locale. Servir la communauté avec fierté et détermination.">
+    <!-- Google Fonts: Open Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+    <!-- Header Section -->
+    <header>
+        <div class="logo">
+            <!-- Placeholder for Logo Icon -->
+            <span role="img" aria-label="Fire Truck Icon">🚒</span>
+            Caserne des pompiers de TMC
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#chief-messages">Messages de l'encadrement</a></li>
+                <li><a href="#amicalist-messages">Messages de l'amicale</a></li>
+                <li><a href="#events">Événements</a></li>
+                <li><a href="#recruits">Nouveau engagés</a></li>
+                <li><a href="#formation">Formation</a></li>
+            </ul>
+        </nav>
+    </header>
+
+
+    <div class="page-container">
+        <main class="main-content">
+            <!-- Chief's Carousel Section -->
+            <section id="chief-messages" class="carousel-section">
+                <h2>Messages de l'encadrement</h2>
+                <div id="chief-carousel" class="carousel-container">
+                    <!-- Slide 1 -->
+                    <div class="carousel-slide active">
+                        <blockquote>"Retour du salbutamol pédiatrique. Aérosol pour les enfants de nouveau disponible."
+                        </blockquote>
+                        <cite>- Groupe Approvisionnement</cite>
+                    </div>
+                    <!-- Slide 2 -->
+                    <div class="carousel-slide">
+                        <blockquote>"La detecteur de CO est en maintenance, utilisez celui du sac prompt secours en
+                            attendant."</blockquote>
+                        <cite>- Groupe Batiments</cite>
+                    </div>
+                    <!-- Slide 3 -->
+                    <div class="carousel-slide">
+                        <blockquote>"Pensez à vous inscrire aux différents recyclages."</blockquote>
+                        <cite>- Groupe formation</cite>
+                    </div>
+
+                    <div class="carousel-nav">
+                        <button class="carousel-btn prev-btn" aria-label="Previous Message">&lt;</button>
+                        <button class="carousel-btn next-btn" aria-label="Next Message">&gt;</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Amicalist's Carousel Section -->
+            <section id="amicalist-messages" class="carousel-section" style="background-color: #f9f9f9;">
+                <h2>Messages de l'amicale</h2>
+                <div id="amicalist-carousel" class="carousel-container">
+                    <!-- Slide 1 -->
+                    <div class="carousel-slide active">
+                        <blockquote>"Merci pour votre soutien lors de la matinée boudin."</blockquote>
+                    </div>
+                    <!-- Slide 2 -->
+                    <div class="carousel-slide">
+                        <blockquote>N'oubliez pas de finir votre tournée de calendrier avant la fin de l'année !
+                        </blockquote>
+                    </div>
+                    <!-- Slide 3 -->
+                    <div class="carousel-slide">
+                        <blockquote>"Inscrivez vous pour venir fêter Noël autour d'une bonne raclette ! "</blockquote>
+                    </div>
+
+                    <div class="carousel-nav">
+                        <button class="carousel-btn prev-btn" aria-label="Previous Message">&lt;</button>
+                        <button class="carousel-btn next-btn" aria-label="Next Message">&gt;</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- New Recruits Section -->
+            <section id="recruits">
+                <h2>Bienvenue à nos nouveaux engagés !</h2>
+                <div class="recruits-grid">
+                    <!-- Recruit 1 -->
+                    <div class="recruit-card">
+                        <img src="assets/images/recruit1.jpg" alt="Sarah Jenkins" style="background-color: #ccc;">
+                        <!-- Placeholder color if image missing -->
+                        <div class="recruit-info">
+                            <div class="recruit-name">Sarah Jenkins</div>
+                            <p>Arrivée le 1er janvier, elle aime faire la fête.</p>
+                        </div>
+                    </div>
+                    <!-- Recruit 2 -->
+                    <div class="recruit-card">
+                        <img src="assets/images/recruit2.jpg" alt="Mike Ross" style="background-color: #ccc;">
+                        <div class="recruit-info">
+                            <div class="recruit-name">Mike Ross</div>
+                            <p>Arrivé le 1er février, il aime les randonnées.</p>
+                        </div>
+                    </div>
+                    <!-- Recruit 3 -->
+                    <div class="recruit-card">
+                        <img src="assets/images/recruit3.jpg" alt="David Kim" style="background-color: #ccc;">
+                        <div class="recruit-info">
+                            <div class="recruit-name">David Kim</div>
+                            <p>Arrivé le 1er Janvier, il est fan de Karaté.</p>
+                        </div>
+                    </div>
+                    <!-- Recruit 4 -->
+                    <div class="recruit-card">
+                        <img src="assets/images/recruit4.jpg" alt="Emily Chen" style="background-color: #ccc;">
+                        <div class="recruit-info">
+                            <div class="recruit-name">Emily Chen</div>
+                            <p>Arrivé le 1er février, elle aime les voyages.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <aside class="sidebar">
+            <!-- Future Event Section -->
+            <section id="events" class="future-event">
+                <h2>Upcoming Events</h2>
+                <div class="event-card">
+                    <div class="event-date">Decembre 15 2025, 17H00</div>
+                    <h3>Session de test sportif</h3>
+                    <p>Inscription auprès de .... </p>
+                </div>
+                <div class="event-card">
+                    <div class="event-date">Janvier 17 2025, 19H30</div>
+                    <h3>Prise de garde</h3>
+                    <p>Garde 2 - Inventaire suivi d'une Manoeuvre SUAP. </p>
+                </div>
+            </section>
+
+            <!-- Formation Section -->
+            <section id="formation">
+                <h2>Formation</h2>
+                <div class="formation-content">
+                    <div class="formation-text">
+                        <h3>SUAP</h3>
+                        <p>PlaceHolder pour un QR code qui envoie sur un quizz ?? </p>
+                        <br>
+
+                    </div>
+                    <div class="formation-image">
+                        <img src="assets/images/training.jpg" alt="QR code pour le SUAP"
+                            style="background-color: #ccc; min-height: 300px;">
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Caserne TMC - Marine Guyot. Tous droits réservés.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/script.js"></script>
+</body>
+
+</html>
