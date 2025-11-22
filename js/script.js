@@ -2,11 +2,32 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initEditModal();
     startAutoReload();
+    displayServerIP();
 });
+
+async function displayServerIP() {
+    try {
+        const response = await fetch('/api/ip');
+        if (response.ok) {
+            const data = await response.json();
+            const footer = document.querySelector('footer');
+            if (footer) {
+                const ipInfo = document.createElement('p');
+                ipInfo.style.fontSize = '0.9em';
+                ipInfo.style.color = '#666';
+                ipInfo.style.marginTop = '5px';
+                ipInfo.innerHTML = `Access from network: <strong>http://${data.ip}:${data.port}</strong>`;
+                footer.appendChild(ipInfo);
+            }
+        }
+    } catch (error) {
+        console.error('Could not fetch server IP:', error);
+    }
+}
 
 async function loadData() {
     try {
-        const response = await fetch('data/db.json');
+        const response = await fetch(`data/db.json?t=${new Date().getTime()}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -29,11 +50,14 @@ async function loadData() {
 let lastModifiedTime = 0;
 
 function startAutoReload() {
+    console.log('Starting auto-reload polling...');
     setInterval(async () => {
         try {
-            const response = await fetch('/api/last-modified');
+            const response = await fetch(`/api/last-modified?t=${new Date().getTime()}`);
             if (response.ok) {
                 const data = await response.json();
+                console.log(`Server mtime: ${data.last_modified}, Client mtime: ${lastModifiedTime}`);
+
                 if (lastModifiedTime === 0) {
                     lastModifiedTime = data.last_modified;
                 } else if (data.last_modified !== lastModifiedTime) {

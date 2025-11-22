@@ -2,13 +2,31 @@ import http.server
 import socketserver
 import json
 import os
+import socket
+import threading
+from urllib.parse import urlparse
 
 PORT = 8000
 DB_FILE = 'data/db.json'
+file_lock = threading.Lock()
+
+def get_local_ip():
+    try:
+        # Connect to an external server (doesn't actually send data) to get the local interface IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/api/last-modified':
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+
+        if path == '/api/last-modified':
             try:
                 if os.path.exists(DB_FILE):
                     mtime = os.path.getmtime(DB_FILE)
@@ -18,6 +36,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(json.dumps({"last_modified": mtime}).encode('utf-8'))
                 else:
                     self.send_error(404, "Database file not found")
+            except Exception as e:
+                self.send_error(500, str(e))
+        elif path == '/api/ip':
+            try:
+                ip = get_local_ip()
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"ip": ip, "port": PORT}).encode('utf-8'))
             except Exception as e:
                 self.send_error(500, str(e))
         else:
@@ -37,27 +64,28 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_error(400, "Missing category or item")
                     return
 
-                # Read existing data
-                if os.path.exists(DB_FILE):
-                    with open(DB_FILE, 'r', encoding='utf-8') as f:
-                        db_data = json.load(f)
-                else:
-                    db_data = {"chiefMessages": [], "amicalistMessages": [], "recruits": [], "events": []}
+                with file_lock:
+                    # Read existing data
+                    if os.path.exists(DB_FILE):
+                        with open(DB_FILE, 'r', encoding='utf-8') as f:
+                            db_data = json.load(f)
+                    else:
+                        db_data = {"chiefMessages": [], "amicalistMessages": [], "recruits": [], "events": []}
 
-                # Append new item
-                if category in db_data:
-                    db_data[category].append(new_item)
-                    
-                    # Write back to file
-                    with open(DB_FILE, 'w', encoding='utf-8') as f:
-                        json.dump(db_data, f, indent=2, ensure_ascii=False)
-                    
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
-                else:
-                    self.send_error(400, f"Invalid category: {category}")
+                    # Append new item
+                    if category in db_data:
+                        db_data[category].append(new_item)
+                        
+                        # Write back to file
+                        with open(DB_FILE, 'w', encoding='utf-8') as f:
+                            json.dump(db_data, f, indent=2, ensure_ascii=False)
+                        
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
+                    else:
+                        self.send_error(400, f"Invalid category: {category}")
 
             except json.JSONDecodeError:
                 self.send_error(400, "Invalid JSON")
@@ -67,9 +95,13 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "Not Found")
 
 print(f"Serving at http://localhost:{PORT}")
+print(f"Local Network URL: http://{get_local_ip()}:{PORT}")
 print("Press Ctrl+C to stop")
 
-with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
+class ThreadingSimpleServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    pass
+
+with ThreadingSimpleServer(("", PORT), CustomHandler) as httpd:
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
