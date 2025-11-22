@@ -27,15 +27,10 @@
         </div>
         <nav>
             <ul>
-                <li><a href="#chief-messages">Messages de l'encadrement</a></li>
-                <li><a href="#amicalist-messages">Messages de l'amicale</a></li>
-                <li><a href="#events">Événements</a></li>
-                <li><a href="#recruits">Nouveau engagés</a></li>
-                <li><a href="#formation">Formation</a></li>
+                <li><button id="edit-btn" class="edit-btn">Edit</button></li>
             </ul>
         </nav>
     </header>
-
 
     <div class="page-container">
         <main class="main-content">
@@ -102,6 +97,31 @@
     <footer>
         <p>&copy; 2025 Caserne TMC - Marine Guyot. Tous droits réservés.</p>
     </footer>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add New Item</h2>
+            <div class="form-group">
+                <label for="category-select">Category:</label>
+                <select id="category-select">
+                    <option value="">Select a category...</option>
+                    <option value="chiefMessages">Message Encadrement</option>
+                    <option value="amicalistMessages">Message Amicale</option>
+                    <option value="recruits">Nouveau Engagé</option>
+                    <option value="events">Événement</option>
+                </select>
+            </div>
+            <div id="dynamic-form">
+                <!-- Dynamic inputs will be injected here -->
+            </div>
+            <div class="modal-actions">
+                <button id="save-btn" class="btn-save" disabled>Save</button>
+                <button id="cancel-btn" class="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="js/script.js"></script>

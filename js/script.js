@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
+    initEditModal();
+    startAutoReload();
 });
 
 async function loadData() {
@@ -24,9 +26,35 @@ async function loadData() {
     }
 }
 
+let lastModifiedTime = 0;
+
+function startAutoReload() {
+    setInterval(async () => {
+        try {
+            const response = await fetch('/api/last-modified');
+            if (response.ok) {
+                const data = await response.json();
+                if (lastModifiedTime === 0) {
+                    lastModifiedTime = data.last_modified;
+                } else if (data.last_modified !== lastModifiedTime) {
+                    console.log('Data changed, reloading...');
+                    lastModifiedTime = data.last_modified;
+                    loadData();
+                }
+            }
+        } catch (error) {
+            console.error('Error checking for updates:', error);
+        }
+    }, 2000); // Check every 2 seconds
+}
+
 function renderCarousel(containerId, messages) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    // Clear existing slides except nav
+    const existingSlides = container.querySelectorAll('.carousel-slide');
+    existingSlides.forEach(slide => slide.remove());
 
     const nav = container.querySelector('.carousel-nav');
 
@@ -104,7 +132,6 @@ function initCarousel(carouselId) {
     }
 
     function startAutoPlay() {
-        // Clear any existing interval to avoid duplicates
         if (autoPlayInterval) clearInterval(autoPlayInterval);
         autoPlayInterval = setInterval(nextSlide, 5000);
     }
@@ -113,13 +140,7 @@ function initCarousel(carouselId) {
         clearInterval(autoPlayInterval);
     }
 
-    // Remove existing event listeners to prevent duplicates if called multiple times
-    // (Note: simpler to just clone and replace buttons if we wanted to be 100% clean, 
-    // but since we run this once after load, it's fine. 
-    // If we re-ran init, we'd need to be careful.)
-
     if (nextBtn) {
-        // Clone to remove old listeners
         const newNext = nextBtn.cloneNode(true);
         nextBtn.parentNode.replaceChild(newNext, nextBtn);
         newNext.addEventListener('click', () => {
@@ -139,11 +160,146 @@ function initCarousel(carouselId) {
         });
     }
 
-    // Pause on hover
     container.addEventListener('mouseenter', stopAutoPlay);
     container.addEventListener('mouseleave', startAutoPlay);
 
-    // Initial start
     showSlide(currentIndex);
     startAutoPlay();
+}
+
+/* --- Edit Modal Logic --- */
+
+function initEditModal() {
+    const modal = document.getElementById('edit-modal');
+    const editBtn = document.getElementById('edit-btn');
+    const closeBtn = document.querySelector('.close-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const categorySelect = document.getElementById('category-select');
+    const dynamicForm = document.getElementById('dynamic-form');
+
+    if (!modal || !editBtn) return;
+
+    // Open Modal
+    editBtn.addEventListener('click', () => {
+        modal.style.display = 'block';
+    });
+
+    // Close Modal
+    function closeModal() {
+        modal.style.display = 'none';
+        categorySelect.value = "";
+        dynamicForm.innerHTML = "";
+        saveBtn.disabled = true;
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    // Handle Category Selection
+    categorySelect.addEventListener('change', (e) => {
+        const category = e.target.value;
+        dynamicForm.innerHTML = "";
+
+        if (category) {
+            saveBtn.disabled = false;
+            renderFormFields(category, dynamicForm);
+        } else {
+            saveBtn.disabled = true;
+        }
+    });
+
+    // Handle Save
+    saveBtn.addEventListener('click', async () => {
+        const category = categorySelect.value;
+        if (!category) return;
+
+        const formData = {};
+        const inputs = dynamicForm.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            formData[input.name] = input.value;
+        });
+
+        // Basic Validation
+        for (const key in formData) {
+            if (!formData[key]) {
+                alert('Please fill in all fields');
+                return;
+            }
+        }
+
+        // Send to Server
+        try {
+            const response = await fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    category: category,
+                    item: formData
+                })
+            });
+
+            if (response.ok) {
+                alert('Item saved successfully!');
+                closeModal();
+                loadData(); // Refresh UI
+            } else {
+                alert('Failed to save item.');
+            }
+        } catch (error) {
+            console.error('Error saving data:', error);
+            alert('Error saving data. Make sure server.py is running.');
+        }
+    });
+}
+
+function renderFormFields(category, container) {
+    let fields = [];
+
+    switch (category) {
+        case 'chiefMessages':
+            fields = [
+                { name: 'text', label: 'Message', type: 'textarea' },
+                { name: 'author', label: 'Author (Group)', type: 'text' }
+            ];
+            break;
+        case 'amicalistMessages':
+            fields = [
+                { name: 'text', label: 'Message', type: 'textarea' }
+            ];
+            break;
+        case 'recruits':
+            fields = [
+                { name: 'name', label: 'Name', type: 'text' },
+                { name: 'image', label: 'Image Path (e.g., assets/images/recruit1.jpg)', type: 'text', value: 'assets/images/recruit1.jpg' },
+                { name: 'description', label: 'Description', type: 'textarea' }
+            ];
+            break;
+        case 'events':
+            fields = [
+                { name: 'date', label: 'Date (e.g., 15 Decembre 2025, 17H00)', type: 'text' },
+                { name: 'title', label: 'Title', type: 'text' },
+                { name: 'description', label: 'Description', type: 'textarea' }
+            ];
+            break;
+    }
+
+    const html = fields.map(field => `
+        <div class="form-group">
+            <label for="${field.name}">${field.label}</label>
+            ${field.type === 'textarea'
+            ? `<textarea id="${field.name}" name="${field.name}" rows="3"></textarea>`
+            : `<input type="${field.type}" id="${field.name}" name="${field.name}" value="${field.value || ''}">`
+        }
+        </div>
+    `).join('');
+
+    container.innerHTML = html;
 }
