@@ -226,13 +226,28 @@ function initEditModal() {
     });
 
     // Handle Category Selection
-    categorySelect.addEventListener('change', (e) => {
+    categorySelect.addEventListener('change', async (e) => {
         const category = e.target.value;
         dynamicForm.innerHTML = "";
+        const existingItemsContainer = document.getElementById('existing-items-container');
+        if (existingItemsContainer) existingItemsContainer.remove();
 
         if (category) {
             saveBtn.disabled = false;
             renderFormFields(category, dynamicForm);
+
+            // Fetch and display existing items
+            try {
+                const response = await fetch(`data/db.json?t=${new Date().getTime()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data[category]) {
+                        renderExistingItems(category, data[category], dynamicForm);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching existing items:', error);
+            }
         } else {
             saveBtn.disabled = true;
         }
@@ -326,4 +341,87 @@ function renderFormFields(category, container) {
     `).join('');
 
     container.innerHTML = html;
+}
+
+function renderExistingItems(category, items, container) {
+    const listContainer = document.createElement('div');
+    listContainer.id = 'existing-items-container';
+    listContainer.style.marginTop = '20px';
+    listContainer.style.borderTop = '1px solid #eee';
+    listContainer.style.paddingTop = '10px';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Existing Items';
+    listContainer.appendChild(title);
+
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+
+    items.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.justifyContent = 'space-between';
+        li.style.alignItems = 'center';
+        li.style.padding = '5px 0';
+        li.style.borderBottom = '1px solid #f0f0f0';
+
+        let label = '';
+        if (item.title) label = item.title;
+        else if (item.name) label = item.name;
+        else if (item.text) label = item.text.substring(0, 30) + '...';
+
+        const span = document.createElement('span');
+        span.textContent = label;
+        li.appendChild(span);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.style.backgroundColor = '#ff4444';
+        deleteBtn.style.color = 'white';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.padding = '5px 10px';
+        deleteBtn.style.borderRadius = '3px';
+        deleteBtn.style.cursor = 'pointer';
+
+        deleteBtn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this item?')) {
+                await deleteItem(category, item);
+            }
+        });
+
+        li.appendChild(deleteBtn);
+        list.appendChild(li);
+    });
+
+    listContainer.appendChild(list);
+    container.parentNode.insertBefore(listContainer, container.nextSibling);
+}
+
+async function deleteItem(category, item) {
+    try {
+        const response = await fetch('/api/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                category: category,
+                item: item
+            })
+        });
+
+        if (response.ok) {
+            alert('Item deleted successfully!');
+            // Refresh the list
+            const categorySelect = document.getElementById('category-select');
+            categorySelect.dispatchEvent(new Event('change'));
+            loadData(); // Refresh main view
+        } else {
+            alert('Failed to delete item.');
+        }
+    } catch (error) {
+        console.error('Error deleting item:', error);
+        alert('Error deleting item.');
+    }
 }

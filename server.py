@@ -91,6 +91,54 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(400, "Invalid JSON")
             except Exception as e:
                 self.send_error(500, str(e))
+        elif self.path == '/api/delete':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                payload = json.loads(post_data.decode('utf-8'))
+                category = payload.get('category')
+                item_to_delete = payload.get('item')
+
+                if not category or not item_to_delete:
+                    self.send_error(400, "Missing category or item")
+                    return
+
+                with file_lock:
+                    if os.path.exists(DB_FILE):
+                        with open(DB_FILE, 'r', encoding='utf-8') as f:
+                            db_data = json.load(f)
+                    else:
+                        self.send_error(404, "Database not found")
+                        return
+
+                    if category in db_data:
+                        # Find and remove the item (matching by content)
+                        original_len = len(db_data[category])
+                        # Filter out the item that matches item_to_delete
+                        # We use a list comprehension to keep items that are NOT equal to item_to_delete
+                        # Note: This removes ALL exact duplicates if they exist, which is usually desired behavior for "delete this content"
+                        # If we wanted to remove only one, we'd need to iterate and remove the first match.
+                        # Let's remove only the first match to be safe.
+                        if item_to_delete in db_data[category]:
+                            db_data[category].remove(item_to_delete)
+                            
+                            with open(DB_FILE, 'w', encoding='utf-8') as f:
+                                json.dump(db_data, f, indent=2, ensure_ascii=False)
+                            
+                            self.send_response(200)
+                            self.send_header('Content-type', 'application/json')
+                            self.end_headers()
+                            self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
+                        else:
+                            self.send_error(404, "Item not found")
+                    else:
+                        self.send_error(400, f"Invalid category: {category}")
+
+            except json.JSONDecodeError:
+                self.send_error(400, "Invalid JSON")
+            except Exception as e:
+                self.send_error(500, str(e))
         else:
             self.send_error(404, "Not Found")
 

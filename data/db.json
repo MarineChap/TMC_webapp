@@ -11,22 +11,6 @@
     {
       "text": "Pensez à vous inscrire aux différents recyclages.",
       "author": "Groupe formation"
-    },
-    {
-      "text": "hdjkdsjk",
-      "author": "marine test"
-    },
-    {
-      "text": "mdls,,vlm,c",
-      "author": "chief marine"
-    },
-    {
-      "text": "Cpucou",
-      "author": "Wjejwj"
-    },
-    {
-      "text": "UGG cc jf",
-      "author": "Jfdgj"
     }
   ],
   "amicalistMessages": [
@@ -38,19 +22,11 @@
     },
     {
       "text": "Inscrivez vous pour venir fêter Noël autour d'une bonne raclette ! "
-    },
-    {
-      "text": "Jf jcmv"
     }
   ],
   "recruits": [
     {
       "name": "Sarah Jenkins",
-      "image": "assets/images/recruit1.jpg",
-      "description": "Arrivée le 1er janvier, elle aime faire la fête."
-    },
-    {
-      "name": "Sarah Jenkins 2",
       "image": "assets/images/recruit1.jpg",
       "description": "Arrivée le 1er janvier, elle aime faire la fête."
     },
@@ -68,16 +44,6 @@
       "name": "Emily Chen",
       "image": "assets/images/recruit4.jpg",
       "description": "Arrivé le 1er février, elle aime les voyages."
-    },
-    {
-      "name": "kndskl",
-      "image": "assets/images/recruit1.jpg",
-      "description": "lk;njk"
-    },
-    {
-      "name": "sxq",
-      "image": "assets/images/recruit1.jpg",
-      "description": "sa"
     }
   ],
   "events": [
@@ -90,21 +56,6 @@
       "date": "17 Janvier 2025, 19H30",
       "title": "Prise de garde",
       "description": "Garde 2 - Inventaire suivi d'une Manoeuvre SUAP. "
-    },
-    {
-      "date": "tomorrow",
-      "title": ",dksl",
-      "description": "fdgg"
-    },
-    {
-      "date": "Bshjs",
-      "title": "Fsghs",
-      "description": "Vbbbj"
-    },
-    {
-      "date": "Test Date",
-      "title": "Test Event",
-      "description": "Test Description"
     }
   ]
 }
