@@ -6,7 +6,7 @@ import socket
 import threading
 from urllib.parse import urlparse
 
-PORT = 8000
+PORT = int(os.environ.get('PORT', 8000))
 DB_FILE = 'data/db.json'
 file_lock = threading.Lock()
 
