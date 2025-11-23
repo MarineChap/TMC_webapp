@@ -16,7 +16,7 @@ async function displayServerIP() {
                 ipInfo.style.fontSize = '0.9em';
                 ipInfo.style.color = '#666';
                 ipInfo.style.marginTop = '5px';
-                ipInfo.innerHTML = `Access from network: <strong>http://${data.ip}:${data.port}</strong>`;
+                ipInfo.innerHTML = `Connecte à cette adresse: <strong>http://${data.ip}:${data.port}</strong>`;
                 footer.appendChild(ipInfo);
             }
         }
@@ -86,9 +86,22 @@ function renderCarousel(containerId, messages) {
         const slide = document.createElement('div');
         slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
 
-        let content = `<blockquote>"${msg.text}"</blockquote>`;
+        let content = '';
+        if (msg.image) {
+            content += `<div style="display: flex; align-items: center; gap: 20px; text-align: left;">
+                <img src="${msg.image}" alt="Image" style="max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 5px;">
+                <div>`;
+        }
+
+        content += `<blockquote>"${msg.text || msg.description || ''}"</blockquote>`;
         if (msg.author) {
             content += `<cite>- ${msg.author}</cite>`;
+        } else if (msg.title) {
+            content += `<cite><strong>${msg.title}</strong></cite>`;
+        }
+
+        if (msg.image) {
+            content += `</div></div>`;
         }
 
         slide.innerHTML = content;
@@ -118,6 +131,7 @@ function renderEvents(events) {
     container.innerHTML = events.map(event => `
         <div class="event-card">
             <div class="event-date">${event.date}</div>
+            ${event.image ? `<img src="${event.image}" alt="${event.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">` : ''}
             <h3>${event.title}</h3>
             <p>${event.description}</p>
         </div>
@@ -260,14 +274,51 @@ function initEditModal() {
 
         const formData = {};
         const inputs = dynamicForm.querySelectorAll('input, textarea');
+
+        // Handle File Upload first if present
+        const fileInput = dynamicForm.querySelector('input[type="file"]');
+        let uploadedImagePath = '';
+
+        if (fileInput && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            try {
+                // Upload the file
+                const uploadResponse = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+                    method: 'POST',
+                    body: file // Send raw file content
+                });
+
+                if (uploadResponse.ok) {
+                    const uploadData = await uploadResponse.json();
+                    uploadedImagePath = uploadData.path;
+                } else {
+                    alert('Failed to upload image.');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image.');
+                return;
+            }
+        }
+
         inputs.forEach(input => {
-            formData[input.name] = input.value;
+            if (input.type === 'file') {
+                if (uploadedImagePath) {
+                    formData[input.name] = uploadedImagePath;
+                }
+                // If no file uploaded, maybe keep existing? For now, if required, validation will catch empty.
+                // Or if it's an edit of existing item (not implemented yet fully for edit), we'd need to handle that.
+                // For new item, if no file, it's empty string.
+            } else {
+                formData[input.name] = input.value;
+            }
         });
 
         // Basic Validation
         for (const key in formData) {
             if (!formData[key]) {
-                alert('Please fill in all fields');
+                alert('Remplissez tous les champs svp!');
                 return;
             }
         }
@@ -286,15 +337,15 @@ function initEditModal() {
             });
 
             if (response.ok) {
-                alert('Item saved successfully!');
+                alert('Item ajouté avec succés!');
                 closeModal();
                 loadData(); // Refresh UI
             } else {
-                alert('Failed to save item.');
+                alert('Impossible d ajouter cette donnée.');
             }
         } catch (error) {
             console.error('Error saving data:', error);
-            alert('Error saving data. Make sure server.py is running.');
+            alert('Erreur en ajoutant les données.');
         }
     });
 }
@@ -306,26 +357,31 @@ function renderFormFields(category, container) {
         case 'chiefMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'author', label: 'Author (Group)', type: 'text' }
+                { name: 'author', label: 'Auteur (Groupe)', type: 'text' },
+                { name: 'image', label: 'Image (Optional)', type: 'file' }
             ];
             break;
         case 'amicalistMessages':
             fields = [
-                { name: 'text', label: 'Message', type: 'textarea' }
+                { name: 'text', label: 'Message', type: 'textarea' },
+                { name: 'title', label: 'Titre', type: 'text' },
+                { name: 'description', label: 'Description', type: 'textarea' },
+                { name: 'image', label: 'Image (Optional)', type: 'file' }
             ];
             break;
         case 'recruits':
             fields = [
-                { name: 'name', label: 'Name', type: 'text' },
-                { name: 'image', label: 'Image Path (e.g., assets/images/recruit1.jpg)', type: 'text', value: 'assets/images/recruit1.jpg' },
+                { name: 'name', label: 'Nom', type: 'text' },
+                { name: 'image', label: 'Image', type: 'file' },
                 { name: 'description', label: 'Description', type: 'textarea' }
             ];
             break;
         case 'events':
             fields = [
                 { name: 'date', label: 'Date (e.g., 15 Decembre 2025, 17H00)', type: 'text' },
-                { name: 'title', label: 'Title', type: 'text' },
-                { name: 'description', label: 'Description', type: 'textarea' }
+                { name: 'title', label: 'Titre', type: 'text' },
+                { name: 'description', label: 'Description', type: 'textarea' },
+                { name: 'image', label: 'Image (Optional)', type: 'file' }
             ];
             break;
     }
@@ -351,7 +407,7 @@ function renderExistingItems(category, items, container) {
     listContainer.style.paddingTop = '10px';
 
     const title = document.createElement('h3');
-    title.textContent = 'Existing Items';
+    title.textContent = 'Liste des messages:';
     listContainer.appendChild(title);
 
     const list = document.createElement('ul');
@@ -376,7 +432,7 @@ function renderExistingItems(category, items, container) {
         li.appendChild(span);
 
         const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Delete';
+        deleteBtn.textContent = 'X';
         deleteBtn.style.backgroundColor = '#ff4444';
         deleteBtn.style.color = 'white';
         deleteBtn.style.border = 'none';
@@ -385,7 +441,7 @@ function renderExistingItems(category, items, container) {
         deleteBtn.style.cursor = 'pointer';
 
         deleteBtn.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to delete this item?')) {
+            if (confirm('Es tu sure de vouloir supprimer cet item?')) {
                 await deleteItem(category, item);
             }
         });
@@ -412,16 +468,16 @@ async function deleteItem(category, item) {
         });
 
         if (response.ok) {
-            alert('Item deleted successfully!');
+            alert('Item supprimé!');
             // Refresh the list
             const categorySelect = document.getElementById('category-select');
             categorySelect.dispatchEvent(new Event('change'));
             loadData(); // Refresh main view
         } else {
-            alert('Failed to delete item.');
+            alert('Impossible de supprimer cet item.');
         }
     } catch (error) {
         console.error('Error deleting item:', error);
-        alert('Error deleting item.');
+        alert('Erreur en supprimant cet item.');
     }
 }

@@ -4,7 +4,7 @@ import json
 import os
 import socket
 import threading
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 PORT = int(os.environ.get('PORT', 8000))
 DB_FILE = 'data/db.json'
@@ -114,15 +114,26 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
                     if category in db_data:
                         # Find and remove the item (matching by content)
-                        original_len = len(db_data[category])
-                        # Filter out the item that matches item_to_delete
-                        # We use a list comprehension to keep items that are NOT equal to item_to_delete
-                        # Note: This removes ALL exact duplicates if they exist, which is usually desired behavior for "delete this content"
-                        # If we wanted to remove only one, we'd need to iterate and remove the first match.
-                        # Let's remove only the first match to be safe.
                         if item_to_delete in db_data[category]:
                             db_data[category].remove(item_to_delete)
                             
+                            # Check for image and delete file
+                            image_path = item_to_delete.get('image')
+                            if image_path and image_path.startswith('assets/images/'):
+                                # Sanitize path to prevent directory traversal (basic check)
+                                # We only allow deleting files directly inside assets/images/ or subdirs if we trust the path
+                                # Since the path comes from our own upload, it should be safe, but let's be careful.
+                                # Ideally we should reconstruct the path.
+                                # For now, we just check if it exists and delete it.
+                                # Normalize path separators
+                                normalized_path = image_path.replace('/', os.sep).replace('\\', os.sep)
+                                if os.path.exists(normalized_path) and os.path.isfile(normalized_path):
+                                    try:
+                                        os.remove(normalized_path)
+                                        print(f"Deleted image: {normalized_path}")
+                                    except Exception as e:
+                                        print(f"Error deleting image {normalized_path}: {e}")
+
                             with open(DB_FILE, 'w', encoding='utf-8') as f:
                                 json.dump(db_data, f, indent=2, ensure_ascii=False)
                             
@@ -137,6 +148,38 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
             except json.JSONDecodeError:
                 self.send_error(400, "Invalid JSON")
+            except Exception as e:
+                self.send_error(500, str(e))
+        elif self.path.startswith('/api/upload'):
+            content_length = int(self.headers['Content-Length'])
+            file_content = self.rfile.read(content_length)
+            
+            parsed_path = urlparse(self.path)
+            query_params = parse_qs(parsed_path.query)
+            filename = query_params.get('filename', [None])[0]
+
+            if not filename:
+                self.send_error(400, "Missing filename")
+                return
+
+            # Ensure assets/images directory exists
+            upload_dir = 'assets/images'
+            if not os.path.exists(upload_dir):
+                os.makedirs(upload_dir)
+
+            # Sanitize filename (basic)
+            filename = os.path.basename(filename)
+            file_path = os.path.join(upload_dir, filename)
+
+            try:
+                with open(file_path, 'wb') as f:
+                    f.write(file_content)
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                # Return the relative path to be used in the frontend
+                self.wfile.write(json.dumps({"path": file_path.replace('\\', '/')}).encode('utf-8'))
             except Exception as e:
                 self.send_error(500, str(e))
         else:

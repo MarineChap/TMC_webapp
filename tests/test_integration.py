@@ -147,5 +147,68 @@ class TestServerIntegration(unittest.TestCase):
                     break
             self.assertFalse(found, "Deleted item still found in DB")
 
+    def test_06_upload_image(self):
+        """Test /api/upload endpoint."""
+        test_content = b"Test image content"
+        filename = "test_image.txt"
+        
+        # Upload
+        response = requests.post(
+            f"{BASE_URL}/api/upload?filename={filename}", 
+            data=test_content
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        data = response.json()
+        self.assertIn('path', data)
+        expected_path = f"assets/images/{filename}"
+        self.assertEqual(data['path'].replace('\\', '/'), expected_path)
+        
+        # Verify file exists
+        self.assertTrue(os.path.exists(expected_path))
+        with open(expected_path, 'rb') as f:
+            self.assertEqual(f.read(), test_content)
+            
+        # Cleanup
+        if os.path.exists(expected_path):
+            os.remove(expected_path)
+
+    def test_07_delete_item_with_image(self):
+        """Test deleting an item also deletes its image."""
+        # 1. Upload an image
+        test_content = b"Image to delete"
+        filename = "delete_me.txt"
+        response = requests.post(
+            f"{BASE_URL}/api/upload?filename={filename}", 
+            data=test_content
+        )
+        self.assertEqual(response.status_code, 200)
+        image_path = response.json()['path']
+        
+        # 2. Add item with this image
+        new_item = {
+            "name": "To Delete",
+            "image": image_path,
+            "description": "Will be deleted"
+        }
+        response = requests.post(f"{BASE_URL}/api/save", json={
+            "category": "recruits",
+            "item": new_item
+        })
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify file exists
+        self.assertTrue(os.path.exists(image_path))
+        
+        # 3. Delete the item
+        response = requests.post(f"{BASE_URL}/api/delete", json={
+            "category": "recruits",
+            "item": new_item
+        })
+        self.assertEqual(response.status_code, 200)
+        
+        # 4. Verify file is deleted
+        self.assertFalse(os.path.exists(image_path), "Image file should have been deleted")
+
 if __name__ == '__main__':
     unittest.main()
