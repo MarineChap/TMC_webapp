@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEditModal();
     startAutoReload();
     displayServerIP();
+    fetchWeather();
 });
 
 async function displayServerIP() {
@@ -531,4 +532,87 @@ async function deleteItem(category, item) {
         console.error('Error deleting item:', error);
         alert('Erreur en supprimant cet item.');
     }
+}
+
+/* --- Weather Widget Logic --- */
+
+async function fetchWeather() {
+    const container = document.getElementById('weather-container');
+    if (!container) return;
+
+    // Taluyers coordinates
+    const lat = 45.641;
+    const lon = 4.722;
+
+    try {
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`);
+        if (!response.ok) throw new Error('Weather API failed');
+        const data = await response.json();
+
+        const daily = data.daily;
+        const days = ['Auj.', 'Dem.'];
+
+        let html = '';
+        for (let i = 0; i < 2; i++) {
+            const code = daily.weathercode[i];
+            const maxTemp = Math.round(daily.temperature_2m_max[i]);
+            const minTemp = Math.round(daily.temperature_2m_min[i]);
+            const icon = getWeatherIcon(code);
+            const desc = getWeatherDesc(code);
+
+            html += `
+                <div class="weather-day">
+                    <div class="weather-date">${days[i]}</div>
+                    <div class="weather-icon" title="${desc}">${icon}</div>
+                    <div class="weather-temp">${minTemp}° / ${maxTemp}°</div>
+                    <!-- <div class="weather-desc">${desc}</div> -->
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('Error fetching weather:', error);
+        container.innerHTML = '<div class="weather-loading">Météo indisponible</div>';
+    }
+}
+
+function getWeatherIcon(code) {
+    // WMO Weather interpretation codes (WW)
+    // 0: Clear sky
+    // 1, 2, 3: Mainly clear, partly cloudy, and overcast
+    // 45, 48: Fog and depositing rime fog
+    // 51, 53, 55: Drizzle: Light, moderate, and dense intensity
+    // 56, 57: Freezing Drizzle: Light and dense intensity
+    // 61, 63, 65: Rain: Slight, moderate and heavy intensity
+    // 66, 67: Freezing Rain: Light and heavy intensity
+    // 71, 73, 75: Snow fall: Slight, moderate, and heavy intensity
+    // 77: Snow grains
+    // 80, 81, 82: Rain showers: Slight, moderate, and violent
+    // 85, 86: Snow showers slight and heavy
+    // 95: Thunderstorm: Slight or moderate
+    // 96, 99: Thunderstorm with slight and heavy hail
+
+    if (code === 0) return '☀️';
+    if (code >= 1 && code <= 3) return '⛅';
+    if (code >= 45 && code <= 48) return '🌫️';
+    if (code >= 51 && code <= 67) return '🌧️';
+    if (code >= 71 && code <= 77) return '❄️';
+    if (code >= 80 && code <= 82) return '🌦️';
+    if (code >= 85 && code <= 86) return '🌨️';
+    if (code >= 95 && code <= 99) return '⛈️';
+    return '❓';
+}
+
+function getWeatherDesc(code) {
+    if (code === 0) return 'Ensoleillé';
+    if (code >= 1 && code <= 3) return 'Nuageux';
+    if (code >= 45 && code <= 48) return 'Brouillard';
+    if (code >= 51 && code <= 67) return 'Pluie';
+    if (code >= 71 && code <= 77) return 'Neige';
+    if (code >= 80 && code <= 82) return 'Averses';
+    if (code >= 85 && code <= 86) return 'Averses de neige';
+    if (code >= 95 && code <= 99) return 'Orage';
+    return 'Inconnu';
 }

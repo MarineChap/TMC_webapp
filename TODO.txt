@@ -1,0 +1,8 @@
+[ ] Add hot flash news section that will be display as a rollin rubber banner
+[ ] Review the overall style
+[ ] Add animation for birthdays / formations / new grads 
+
+
+Questions : 
+-----------
+- How to handle when to launch the server ?  In order to avoid the tv and the raspberry to be on all the time
