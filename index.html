@@ -98,6 +98,23 @@
         <p>&copy; 2025 Caserne TMC - Marine Guyot. Tous droits réservés.</p>
     </footer>
 
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-auth-btn"
+                style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            <h2>Authentification Requise</h2>
+            <div class="form-group">
+                <label for="auth-password">Mot de passe:</label>
+                <input type="password" id="auth-password" placeholder="Entrez le mot de passe">
+            </div>
+            <div class="modal-actions">
+                <button id="auth-submit-btn" class="btn-save">Valider</button>
+                <button id="auth-cancel-btn" class="btn-cancel">Annuler</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Modal -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">

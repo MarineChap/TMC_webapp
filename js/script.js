@@ -218,9 +218,9 @@ function initEditModal() {
 
     if (!modal || !editBtn) return;
 
-    // Open Modal
+    // Open Auth Modal instead of Edit Modal directly
     editBtn.addEventListener('click', () => {
-        modal.style.display = 'block';
+        openAuthModal();
     });
 
     // Close Modal
@@ -238,6 +238,57 @@ function initEditModal() {
             closeModal();
         }
     });
+
+    // --- Auth Modal Logic ---
+    function openAuthModal() {
+        const authModal = document.getElementById('auth-modal');
+        const authPasswordInput = document.getElementById('auth-password');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const authCancelBtn = document.getElementById('auth-cancel-btn');
+        const closeAuthBtn = document.querySelector('.close-auth-btn');
+
+        if (!authModal) return;
+
+        authModal.style.display = 'block';
+        authPasswordInput.value = '';
+        authPasswordInput.focus();
+
+        function closeAuth() {
+            authModal.style.display = 'none';
+        }
+
+        function checkPassword() {
+            const password = authPasswordInput.value;
+            if (password === 'TMC2025') {
+                closeAuth();
+                modal.style.display = 'block'; // Open the actual Edit Modal
+            } else {
+                alert('Mot de passe incorrect !');
+            }
+        }
+
+        // Event Listeners for Auth Modal
+        // Remove old listeners to prevent duplicates if function called multiple times (though here it's inside init, so okay if init called once)
+        // Better: define these outside or ensure initEditModal is called once. It is called once in DOMContentLoaded.
+
+        authSubmitBtn.onclick = checkPassword;
+        authCancelBtn.onclick = closeAuth;
+        closeAuthBtn.onclick = closeAuth;
+
+        authPasswordInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        };
+
+        window.onclick = (event) => {
+            if (event.target === authModal) {
+                closeAuth();
+            } else if (event.target === modal) {
+                closeModal();
+            }
+        };
+    }
 
     // Handle Category Selection
     categorySelect.addEventListener('change', async (e) => {
