@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initEditModal();
@@ -5,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     displayServerIP();
     fetchWeather();
 });
+
+let currentFlashNews = [];
 
 async function displayServerIP() {
     try {
@@ -38,6 +41,9 @@ async function loadData() {
         renderCarousel('amicalist-carousel', data.amicalistMessages);
         renderRecruits(data.recruits);
         renderEvents(data.events);
+
+        currentFlashNews = data.flashNews || [];
+        renderFlashNews(currentFlashNews);
 
         // Initialize carousel logic after rendering
         initCarousel('chief-carousel');
@@ -137,6 +143,32 @@ function renderEvents(events) {
             <p>${event.description}</p>
         </div>
     `).join('');
+}
+
+function renderFlashNews(newsItems) {
+    const container = document.getElementById('flash-news-container');
+    const content = container.querySelector('.flash-news-content');
+    if (!container || !content) return;
+
+    if (!newsItems || newsItems.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    const now = new Date();
+    // Find the first valid news item
+    const activeNews = newsItems.find(item => {
+        const start = new Date(item.startTime);
+        const end = new Date(item.endTime);
+        return now >= start && now <= end;
+    });
+
+    if (activeNews) {
+        content.textContent = activeNews.text;
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
 }
 
 function initCarousel(carouselId) {
@@ -367,6 +399,17 @@ function initEditModal() {
             }
         });
 
+        // Auto-set startTime for flashNews
+        if (category === 'flashNews') {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            formData['startTime'] = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
         // Basic Validation
         for (const key in formData) {
             if (!formData[key]) {
@@ -434,6 +477,12 @@ function renderFormFields(category, container) {
                 { name: 'title', label: 'Titre', type: 'text' },
                 { name: 'description', label: 'Description', type: 'textarea' },
                 { name: 'image', label: 'Image (Optional)', type: 'file' }
+            ];
+            break;
+        case 'flashNews':
+            fields = [
+                { name: 'text', label: 'Message Flash', type: 'textarea' },
+                { name: 'endTime', label: 'Date de fin', type: 'datetime-local' }
             ];
             break;
     }

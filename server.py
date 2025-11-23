@@ -10,6 +10,51 @@ PORT = int(os.environ.get('PORT', 8000))
 DB_FILE = 'data/db.json'
 file_lock = threading.Lock()
 
+def cleanup_expired_news():
+    import time
+    from datetime import datetime
+    
+    while True:
+        try:
+            with file_lock:
+                if os.path.exists(DB_FILE):
+                    with open(DB_FILE, 'r', encoding='utf-8') as f:
+                        db_data = json.load(f)
+                    
+                    if 'flashNews' in db_data:
+                        now = datetime.now()
+                        original_count = len(db_data['flashNews'])
+                        # Filter out expired items
+                        # Assuming endTime is in ISO format compatible with string comparison or needs parsing
+                        # The frontend sends "YYYY-MM-DDTHH:MM", which is ISO-like.
+                        # We can parse it to be safe.
+                        
+                        active_news = []
+                        for item in db_data['flashNews']:
+                            try:
+                                end_time_str = item.get('endTime')
+                                if end_time_str:
+                                    end_time = datetime.fromisoformat(end_time_str)
+                                    if end_time > now:
+                                        active_news.append(item)
+                                else:
+                                    # Keep items without end time? Or delete? Let's keep them to be safe.
+                                    active_news.append(item)
+                            except ValueError:
+                                # Keep items with invalid date format to avoid accidental data loss
+                                active_news.append(item)
+                        
+                        if len(active_news) != original_count:
+                            db_data['flashNews'] = active_news
+                            with open(DB_FILE, 'w', encoding='utf-8') as f:
+                                json.dump(db_data, f, indent=2, ensure_ascii=False)
+                            print(f"Cleaned up {original_count - len(active_news)} expired flash news items.")
+                            
+        except Exception as e:
+            print(f"Error in cleanup thread: {e}")
+        
+        time.sleep(10) # Check every 10 seconds
+
 def get_local_ip():
     try:
         # Connect to an external server (doesn't actually send data) to get the local interface IP
@@ -66,14 +111,17 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
                 with file_lock:
                     # Read existing data
+                    # Read existing data
                     if os.path.exists(DB_FILE):
                         with open(DB_FILE, 'r', encoding='utf-8') as f:
                             db_data = json.load(f)
                     else:
-                        db_data = {"chiefMessages": [], "amicalistMessages": [], "recruits": [], "events": []}
+                        db_data = {"chiefMessages": [], "amicalistMessages": [], "recruits": [], "events": [], "flashNews": []}
 
                     # Append new item
                     if category in db_data:
+                        if category == 'flashNews':
+                            db_data[category] = [] # Clear existing flash news
                         db_data[category].append(new_item)
                         
                         # Write back to file
@@ -194,6 +242,10 @@ class ThreadingSimpleServer(socketserver.ThreadingMixIn, socketserver.TCPServer)
 
 with ThreadingSimpleServer(("", PORT), CustomHandler) as httpd:
     try:
+        # Start cleanup thread
+        cleanup_thread = threading.Thread(target=cleanup_expired_news, daemon=True)
+        cleanup_thread.start()
+        
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass

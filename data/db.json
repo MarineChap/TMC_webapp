@@ -52,5 +52,12 @@
       "title": "Prise de garde",
       "description": "Garde 2 - Inventaire suivi d'une Manoeuvre SUAP. "
     }
+  ],
+  "flashNews": [
+    {
+      "text": "tes test",
+      "endTime": "2025-11-23T16:07",
+      "startTime": "2025-11-23T16:02"
+    }
   ]
 }
