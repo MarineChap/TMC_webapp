@@ -104,13 +104,19 @@ section h2::after {
     margin-bottom: 2rem;
     padding: 3rem;
     text-align: center;
+    height: 40vh;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
 }
 
 .carousel-container {
-    position: relative;
     max-width: 800px;
     margin: 0 auto;
     overflow: hidden;
+    width: 100%;
 }
 
 .carousel-slide {
@@ -133,22 +139,28 @@ section h2::after {
     color: var(--primary-red);
 }
 
-.carousel-nav {
-    margin-top: 1rem;
+.carousel-indicators {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    display: flex;
+    gap: 5px;
+    z-index: 10;
 }
 
-.carousel-btn {
+.indicator {
+    width: 20px;
+    height: 5px;
     background-color: var(--primary-red);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
+    opacity: 0.6;
     cursor: pointer;
-    margin: 0 5px;
-    border-radius: 4px;
-    font-weight: bold;
+    transition: all 0.3s ease;
 }
 
-.carousel-btn:hover {
+.indicator.active {
+    width: 30px;
+    height: 7px;
+    opacity: 1;
     background-color: #a51a21;
 }
 
@@ -562,25 +574,24 @@ footer p {
     }
 }
 
-/ *   R e c r u i t s   C a r o u s e l   S p e c i f i c s   * /     # r e c r u i t s - c a r o u s e l   . c a r o u s e l - s l i d e    {
-                 d i s p l a y :    n o n e ;
-                 / *   H i d d e n   b y   d e f a u l t   * /     
+/* Recruits Carousel Specifics */
+#recruits-carousel .carousel-slide {
+    display: none;
+    /* Hidden by default */
 }
 
-         # r e c r u i t s - c a r o u s e l   . c a r o u s e l - s l i d e . a c t i v e    {
-                 d i s p l a y :    g r i d ;
-                 / *   U s e   g r i d   f o r   t h e   a c t i v e   s l i d e   * /             g r i d - t e m p l a t e - c o l u m n s :    r e p e a t ( 3 ,    1 f r ) ;
-                 / *   3   c o l u m n s   * /             g a p :    2 0 p x ;
-         
+#recruits-carousel .carousel-slide.active {
+    display: grid;
+    /* Use grid for the active slide */
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 columns */
+    gap: 20px;
 }
 
-         / *   R e s p o n s i v e   a d j u s t m e n t s   f o r   r e c r u i t s   c a r o u s e l   * /     @ m e d i a   ( m a x - w i d t h :   7 6 8 p x )    {
-                 # r e c r u i t s - c a r o u s e l   . c a r o u s e l - s l i d e . a c t i v e    {
-                             g r i d - t e m p l a t e - c o l u m n s :    1 f r ;
-                             / *   S t a c k   o n   m o b i l e   * /             
+/* Responsive adjustments for recruits carousel */
+@media (max-width: 768px) {
+    #recruits-carousel .carousel-slide.active {
+        grid-template-columns: 1fr;
+        /* Stack on mobile */
     }
-
-         
 }
-
-     

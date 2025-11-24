@@ -178,10 +178,25 @@ function initCarousel(carouselId) {
     const slides = container.querySelectorAll('.carousel-slide');
     if (slides.length === 0) return;
 
-    const prevBtn = container.querySelector('.prev-btn');
-    const nextBtn = container.querySelector('.next-btn');
+    const indicatorsContainer = container.querySelector('.carousel-indicators');
     let currentIndex = 0;
     let autoPlayInterval;
+
+    // Generate Indicators
+    if (indicatorsContainer) {
+        indicatorsContainer.innerHTML = ''; // Clear existing
+        slides.forEach((_, index) => {
+            const indicator = document.createElement('div');
+            indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
+            indicator.addEventListener('click', () => {
+                currentIndex = index;
+                showSlide(currentIndex);
+                stopAutoPlay();
+                startAutoPlay();
+            });
+            indicatorsContainer.appendChild(indicator);
+        });
+    }
 
     function showSlide(index) {
         slides.forEach((slide, i) => {
@@ -190,15 +205,21 @@ function initCarousel(carouselId) {
                 slide.classList.add('active');
             }
         });
+
+        // Update indicators
+        if (indicatorsContainer) {
+            const indicators = indicatorsContainer.querySelectorAll('.indicator');
+            indicators.forEach((ind, i) => {
+                ind.classList.remove('active');
+                if (i === index) {
+                    ind.classList.add('active');
+                }
+            });
+        }
     }
 
     function nextSlide() {
         currentIndex = (currentIndex + 1) % slides.length;
-        showSlide(currentIndex);
-    }
-
-    function prevSlide() {
-        currentIndex = (currentIndex - 1 + slides.length) % slides.length;
         showSlide(currentIndex);
     }
 
@@ -209,26 +230,6 @@ function initCarousel(carouselId) {
 
     function stopAutoPlay() {
         clearInterval(autoPlayInterval);
-    }
-
-    if (nextBtn) {
-        const newNext = nextBtn.cloneNode(true);
-        nextBtn.parentNode.replaceChild(newNext, nextBtn);
-        newNext.addEventListener('click', () => {
-            nextSlide();
-            stopAutoPlay();
-            startAutoPlay();
-        });
-    }
-
-    if (prevBtn) {
-        const newPrev = prevBtn.cloneNode(true);
-        prevBtn.parentNode.replaceChild(newPrev, prevBtn);
-        newPrev.addEventListener('click', () => {
-            prevSlide();
-            stopAutoPlay();
-            startAutoPlay();
-        });
     }
 
     container.addEventListener('mouseenter', stopAutoPlay);
@@ -459,8 +460,6 @@ function renderFormFields(category, container) {
         case 'amicalistMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'title', label: 'Titre', type: 'text' },
-                { name: 'description', label: 'Description', type: 'textarea' },
                 { name: 'image', label: 'Image (Optional)', type: 'file' }
             ];
             break;
