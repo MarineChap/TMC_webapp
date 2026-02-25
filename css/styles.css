@@ -350,9 +350,6 @@ footer p {
 
 /* Edit Button */
 .edit-btn {
-    position: absolute;
-    top: 1rem;
-    right: 2rem;
     background-color: var(--secondary-yellow);
     color: var(--primary-red);
     border: none;

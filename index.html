@@ -26,8 +26,13 @@
             Caserne des pompiers de TMC
         </div>
         <nav>
-            <ul>
-                <li><button id="edit-btn" class="edit-btn">Edit</button></li>
+            <ul style="display: flex; gap: 20px; align-items: center;">
+                <li><button id="login-btn" class="edit-btn">Connexion</button></li>
+                <li><button id="signup-btn" class="edit-btn">Inscription</button></li>
+                <li><button id="logs-btn" class="edit-btn" style="display: none;">Logs</button></li>
+                <li><button id="edit-btn" class="edit-btn" style="display: none;">Éditer</button></li>
+                <li><button id="logout-btn" class="edit-btn"
+                        style="display: none; background-color: #f44336;">Déconnexion</button></li>
             </ul>
         </nav>
     </header>
@@ -84,22 +89,47 @@
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2025 Caserne TMC - Marine Guyot. Tous droits réservés.</p>
+        <p>&copy; 2026 Caserne TMC - Marine Guyot. Tous droits réservés.</p>
     </footer>
 
-    <!-- Auth Modal -->
-    <div id="auth-modal" class="modal">
+    <!-- Connexion Modal -->
+    <div id="login-modal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
-            <span class="close-auth-btn"
+            <span class="close-login-btn"
                 style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
-            <h2>Authentification Requise</h2>
+            <h2>Connexion</h2>
             <div class="form-group">
-                <label for="auth-password">Mot de passe:</label>
-                <input type="password" id="auth-password" placeholder="Entrez le mot de passe">
+                <label for="login-username">Nom d'utilisateur :</label>
+                <input type="text" id="login-username" placeholder="Votre nom d'utilisateur">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Mot de passe :</label>
+                <input type="password" id="login-password" placeholder="Votre mot de passe">
             </div>
             <div class="modal-actions">
-                <button id="auth-submit-btn" class="btn-save">Valider</button>
-                <button id="auth-cancel-btn" class="btn-cancel">Annuler</button>
+                <button id="login-submit-btn" class="btn-save">Se connecter</button>
+                <button id="login-cancel-btn" class="btn-cancel">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inscription Modal -->
+    <div id="signup-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-signup-btn"
+                style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            <h2>Inscription</h2>
+            <div class="form-group">
+                <label for="signup-username">Nom d'utilisateur :</label>
+                <input type="text" id="signup-username" placeholder="Choisissez un nom d'utilisateur">
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Mot de passe :</label>
+                <input type="password" id="signup-password" placeholder="Mot de passe (min 6 caractères)">
+            </div>
+            <div class="modal-actions">
+                <button id="signup-submit-btn" class="btn-save">S'inscrire</button>
+                <button id="signup-cancel-btn" class="btn-cancel">Annuler</button>
             </div>
         </div>
     </div>
@@ -130,8 +160,23 @@
         </div>
     </div>
 
+    <!-- Logs Modal -->
+    <div id="logs-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
+            <span class="close-logs-btn"
+                style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            <h2>Journaux d'activité (Logs)</h2>
+            <div id="logs-list">
+                <!-- Logs will be loaded here -->
+            </div>
+            <div class="modal-actions">
+                <button id="close-logs-footer-btn" class="btn-cancel">Fermer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="js/script.js"></script>
+    <script type="module" src="/src/client/script.ts"></script>
 </body>
 
 </html>
