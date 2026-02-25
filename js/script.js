@@ -1,6 +1,5 @@
-import { SdmisNewsCarousel } from './sdmisCarousel';
 
-let currentUser: any = null;
+let currentUser = null;
 let isUserValidated = false;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -10,24 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startAutoReload();
     displayServerIP();
     fetchWeather();
-    checkInitialLogsRoute();
-
-    // Initialize SDMIS Carousel
-    const sdmisCarousel = new SdmisNewsCarousel('sdmis-carousel');
-    sdmisCarousel.init();
 });
-
-async function checkInitialLogsRoute() {
-    if (window.location.pathname === '/logs') {
-        // Wait for session init
-        setTimeout(() => {
-            if (currentUser && isUserValidated) {
-                const logsBtn = document.getElementById('logs-btn');
-                if (logsBtn) logsBtn.click();
-            }
-        }, 1000);
-    }
-}
 
 let currentFlashNews = [];
 
@@ -42,7 +24,7 @@ async function displayServerIP() {
                 ipInfo.style.fontSize = '0.9em';
                 ipInfo.style.color = '#666';
                 ipInfo.style.marginTop = '5px';
-                ipInfo.innerHTML = `Connectez vous à cette adresse: <strong>http://${data.ip}:5173</strong>`;
+                ipInfo.innerHTML = `Connecte à cette adresse: <strong>http://${data.ip}:${data.port}</strong>`;
                 footer.appendChild(ipInfo);
             }
         }
@@ -265,11 +247,11 @@ function initCarousel(carouselId) {
 
 function initEditModal() {
     const modal = document.getElementById('edit-modal');
-    const editBtn = document.getElementById('edit-btn') as HTMLButtonElement;
+    const editBtn = document.getElementById('edit-btn');
     const closeBtn = document.querySelector('.close-btn');
     const cancelBtn = document.getElementById('cancel-btn');
-    const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
-    const categorySelect = document.getElementById('category-select') as HTMLSelectElement;
+    const saveBtn = document.getElementById('save-btn');
+    const categorySelect = document.getElementById('category-select');
     const dynamicForm = document.getElementById('dynamic-form');
 
     if (!modal || !editBtn) return;
@@ -304,7 +286,7 @@ function initEditModal() {
 
     // Handle Category Selection
     categorySelect.addEventListener('change', async (e) => {
-        const target = e.target as HTMLSelectElement; const category = target.value;
+        const category = e.target.value;
         dynamicForm.innerHTML = "";
         const existingItemsContainer = document.getElementById('existing-items-container');
         if (existingItemsContainer) existingItemsContainer.remove();
@@ -336,35 +318,31 @@ function initEditModal() {
         if (!category) return;
 
         const formData = {};
-        const inputs = dynamicForm.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
+        const inputs = dynamicForm.querySelectorAll('input, textarea');
 
         // Handle File Upload first if present
-        const fileInput = dynamicForm.querySelector('input[type="file"]') as HTMLInputElement;
+        const fileInput = dynamicForm.querySelector('input[type="file"]');
         let uploadedImagePath = '';
 
         if (fileInput && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {
-                // Upload the file using FormData
-                const formDataUpload = new FormData();
-                formDataUpload.append('file', file);
-
-                const uploadResponse = await fetch('/api/upload', {
+                // Upload the file
+                const uploadResponse = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
                     method: 'POST',
-                    body: formDataUpload
+                    body: file // Send raw file content
                 });
 
                 if (uploadResponse.ok) {
                     const uploadData = await uploadResponse.json();
                     uploadedImagePath = uploadData.path;
                 } else {
-                    const err = await uploadResponse.json();
-                    alert('Échec du téléchargement : ' + (err.detail || 'Erreur inconnue'));
+                    alert('Failed to upload image.');
                     return;
                 }
             } catch (error) {
                 console.error('Error uploading image:', error);
-                alert('Erreur lors du téléchargement de l\'image.');
+                alert('Error uploading image.');
                 return;
             }
         }
@@ -399,9 +377,9 @@ function initEditModal() {
                 formData['author'] = currentUser.username;
             } else if (category === 'events' || category === 'recruits' || category === 'flashNews') {
                 if (formData['description'] !== undefined) {
-                    formData['description'] += `\n\n - ${currentUser.username}`;
+                    formData['description'] += `\n\n- ${currentUser.username}`;
                 } else if (formData['text'] !== undefined) {
-                    formData['text'] += `\n\n - ${currentUser.username}`;
+                    formData['text'] += `\n\n- ${currentUser.username}`;
                 }
             }
         }
@@ -448,13 +426,14 @@ function renderFormFields(category, container) {
         case 'chiefMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'image', label: 'Image (Optionnel)', type: 'file' }
+                { name: 'author', label: 'Auteur (Groupe)', type: 'text' },
+                { name: 'image', label: 'Image (Optional)', type: 'file' }
             ];
             break;
         case 'amicalistMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'image', label: 'Image (Optionnel)', type: 'file' }
+                { name: 'image', label: 'Image (Optional)', type: 'file' }
             ];
             break;
         case 'recruits':
@@ -466,16 +445,16 @@ function renderFormFields(category, container) {
             break;
         case 'events':
             fields = [
-                { name: 'date', label: 'Date et Heure', type: 'datetime-local' },
+                { name: 'date', label: 'Date (e.g., 15 Decembre 2025, 17H00)', type: 'text' },
                 { name: 'title', label: 'Titre', type: 'text' },
                 { name: 'description', label: 'Description', type: 'textarea' },
-                { name: 'image', label: 'Image (Optionnel)', type: 'file' }
+                { name: 'image', label: 'Image (Optional)', type: 'file' }
             ];
             break;
         case 'flashNews':
             fields = [
                 { name: 'text', label: 'Message Flash', type: 'textarea' },
-                { name: 'endTime', label: 'Date et Heure de fin', type: 'datetime-local' }
+                { name: 'endTime', label: 'Date de fin', type: 'datetime-local' }
             ];
             break;
     }
@@ -501,7 +480,7 @@ function renderExistingItems(category, items, container) {
     listContainer.style.paddingTop = '10px';
 
     const title = document.createElement('h3');
-    title.textContent = 'Éléments existants :';
+    title.textContent = 'Liste des messages:';
     listContainer.appendChild(title);
 
     const list = document.createElement('ul');
@@ -526,7 +505,7 @@ function renderExistingItems(category, items, container) {
         li.appendChild(span);
 
         const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Supprimer';
+        deleteBtn.textContent = 'X';
         deleteBtn.style.backgroundColor = '#ff4444';
         deleteBtn.style.color = 'white';
         deleteBtn.style.border = 'none';
@@ -564,7 +543,7 @@ async function deleteItem(category, item) {
         if (response.ok) {
             alert('Item supprimé!');
             // Refresh the list
-            const categorySelect = document.getElementById('category-select') as HTMLSelectElement;
+            const categorySelect = document.getElementById('category-select');
             categorySelect.dispatchEvent(new Event('change'));
             loadData(); // Refresh main view
         } else {
@@ -683,7 +662,6 @@ async function initSupabaseAuth() {
         updateAuthUI();
     }
     setupAuthModals();
-    setupLogsModal();
 }
 
 function handleSession(user) {
@@ -696,8 +674,7 @@ function updateAuthUI() {
     const loginBtn = document.getElementById('login-btn');
     const signupBtn = document.getElementById('signup-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const editBtn = document.getElementById('edit-btn') as HTMLButtonElement;
-    const logsBtn = document.getElementById('logs-btn');
+    const editBtn = document.getElementById('edit-btn');
 
     if (currentUser) {
         if (loginBtn) loginBtn.style.display = 'none';
@@ -712,20 +689,17 @@ function updateAuthUI() {
                 editBtn.style.opacity = '1';
                 editBtn.style.cursor = 'pointer';
             }
-            if (logsBtn) logsBtn.style.display = 'block';
         } else {
             if (editBtn) {
                 editBtn.style.display = 'block';
                 editBtn.title = 'Compte en attente de validation';
             }
-            if (logsBtn) logsBtn.style.display = 'none';
         }
     } else {
         if (loginBtn) loginBtn.style.display = 'block';
         if (signupBtn) signupBtn.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (editBtn) editBtn.style.display = 'none';
-        if (logsBtn) logsBtn.style.display = 'none';
     }
 }
 
@@ -738,18 +712,18 @@ function setupAuthModals() {
     const signupModal = document.getElementById('signup-modal');
 
     // Login Elements
-    const loginSubmit = document.getElementById('login-submit-btn') as HTMLButtonElement;
+    const loginSubmit = document.getElementById('login-submit-btn');
     const loginCancel = document.getElementById('login-cancel-btn');
     const loginClose = document.querySelector('.close-login-btn');
-    const loginUsernameInput = document.getElementById('login-username') as HTMLInputElement;
-    const loginPasswordInput = document.getElementById('login-password') as HTMLInputElement;
+    const loginUsernameInput = document.getElementById('login-username');
+    const loginPasswordInput = document.getElementById('login-password');
 
     // Signup Elements
-    const signupSubmit = document.getElementById('signup-submit-btn') as HTMLButtonElement;
+    const signupSubmit = document.getElementById('signup-submit-btn');
     const signupCancel = document.getElementById('signup-cancel-btn');
     const signupClose = document.querySelector('.close-signup-btn');
-    const signupUsernameInput = document.getElementById('signup-username') as HTMLInputElement;
-    const signupPasswordInput = document.getElementById('signup-password') as HTMLInputElement;
+    const signupUsernameInput = document.getElementById('signup-username');
+    const signupPasswordInput = document.getElementById('signup-password');
 
     if (loginBtn) loginBtn.addEventListener('click', () => { loginModal.style.display = 'block'; });
     if (signupBtn) signupBtn.addEventListener('click', () => { signupModal.style.display = 'block'; });
@@ -838,89 +812,4 @@ function setupAuthModals() {
         signupSubmit.disabled = false;
         signupSubmit.textContent = "S'inscrire";
     });
-}
-
-function setupLogsModal() {
-    const logsList = document.getElementById('logs-list');
-    const logsBtn = document.getElementById('logs-btn');
-    const logsModal = document.getElementById('logs-modal');
-    const closeBtn = document.querySelector('.close-logs-btn');
-    const closeFooterBtn = document.getElementById('close-logs-footer-btn');
-
-    if (!logsBtn || !logsModal || !logsList) return;
-
-    logsBtn.addEventListener('click', async () => {
-        logsModal.style.display = 'block';
-        logsList.innerHTML = '<p>Chargement des logs...</p>';
-
-        try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/logs', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (response.ok) {
-                const logs = await response.json();
-                renderLogs(logs);
-            } else {
-                logsList.innerHTML = '<p style="color: red;">Erreur lors du chargement des logs.</p>';
-            }
-        } catch (error: any) {
-            console.error('Logs fetch error:', error);
-            logsList.innerHTML = `<p style="color: red;">Erreur de connexion: ${error.message || error}</p>`;
-        }
-    });
-
-    const close = () => { logsModal.style.display = 'none'; };
-    if (closeBtn) closeBtn.addEventListener('click', close);
-    if (closeFooterBtn) closeFooterBtn.addEventListener('click', close);
-
-    window.addEventListener('click', (event) => {
-        if (event.target === logsModal) close();
-    });
-}
-
-function renderLogs(logs: any[]) {
-    const logsList = document.getElementById('logs-list');
-    if (!logsList) return;
-
-    if (!logs || logs.length === 0) {
-        logsList.innerHTML = '<p>Aucun log disponible.</p>';
-        return;
-    }
-
-    const table = document.createElement('table');
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
-    table.style.marginTop = '10px';
-    table.style.fontSize = '0.9em';
-
-    table.innerHTML = `
-        <thead>
-            <tr style="background-color: #f0f0f0; text-align: left;">
-                <th style="padding: 10px; border: 1px solid #ddd;">Horodatage</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Action</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Détails</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${logs.reverse().map((log: any) => {
-        const details = { ...log };
-        delete details.timestamp;
-        delete details.action;
-        return `
-                <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${new Date(log.timestamp).toLocaleString()}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;"><strong>${log.action}</strong></td>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; font-size: 0.85em;">
-                        ${JSON.stringify(details).replace(/[\{\}\"]/g, '').replace(/,/g, ', ')}
-                    </td>
-                </tr>
-                `;
-    }).join('')}
-        </tbody>
-    `;
-
-    logsList.innerHTML = '';
-    logsList.appendChild(table);
 }

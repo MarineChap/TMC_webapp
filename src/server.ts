@@ -326,6 +326,18 @@ app.get('/api/logs', async (req: Request, res: Response) => {
     }
 });
 
+app.get('/api/sdmis-rss', async (req, res) => {
+    try {
+        const response = await fetch('https://www.sdmis.fr/feed/');
+        if (!response.ok) throw new Error('Failed to fetch SDMIS feed');
+        const data = await response.text();
+        res.set('Content-Type', 'text/xml');
+        res.send(data);
+    } catch (e: any) {
+        res.status(500).json({ detail: e.message || String(e) });
+    }
+});
+
 app.get('/api/ip', (req, res) => {
     const nets = networkInterfaces();
     let ipAddr = 'localhost';

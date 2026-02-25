@@ -1,23 +1,31 @@
 {
-  "chiefMessages": [],
-  "amicalistMessages": [],
-  "recruits": [
+  "chiefMessages": [
     {
-      "name": "Sarah Jenkins",
-      "image": "assets/images/recruit1.jpg",
-      "description": "Arrivée le 1er janvier, elle aime faire la fête."
-    },
-    {
-      "name": "David Kim",
-      "image": "assets/images/recruit3.jpg",
-      "description": "Arrivé le 1er Janvier, il est fan de Karaté."
-    },
-    {
-      "name": "Emily Chen",
-      "image": "assets/images/recruit4.jpg",
-      "description": "Arrivé le 1er février, elle aime les voyages."
+      "text": "XQSDFGCH",
+      "author": "marine"
     }
   ],
-  "events": [],
+  "amicalistMessages": [
+    {
+      "text": "qxsdf",
+      "image": "assets/images/1a85225b-145d-456f-8c83-a83e1bb6752f.png",
+      "author": "marine"
+    }
+  ],
+  "recruits": [
+    {
+      "name": "lies",
+      "image": "assets/images/Gemini_Generated_Image_6oof3p6oof3p6oof.png",
+      "description": "qsdfgtdrt-y\n\n- marine"
+    }
+  ],
+  "events": [
+    {
+      "date": "2026-02-25T23:40",
+      "title": "SDFDD",
+      "description": "AQSDFF\n\n- marine",
+      "image": "assets/images/1a85225b-145d-456f-8c83-a83e1bb6752f.png"
+    }
+  ],
   "flashNews": []
 }

@@ -7,11 +7,10 @@
     <title>Caserne des pompiers de TMC</title>
     <meta name="description"
         content="Site officiel de la brigade de pompiers locale. Servir la communauté avec fierté et détermination.">
-    <!-- Google Fonts: Open Sans -->
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -72,6 +71,7 @@
         <aside class="sidebar">
             <!-- Weather Widget -->
             <section id="weather-widget" class="weather-widget">
+                <h2>Météo locale</h2>
                 <div id="weather-container" class="weather-container">
                     <div class="weather-loading">Chargement...</div>
                 </div>
@@ -79,13 +79,20 @@
 
             <!-- Future Event Section -->
             <section id="events" class="future-event">
-                <h2>Upcoming Events</h2>
+                <h2>Événements à venir</h2>
                 <div id="events-container">
                     <!-- Events will be loaded here -->
                 </div>
             </section>
         </aside>
     </div>
+
+    <!-- SDMIS News Carousel -->
+    <section id="sdmis-carousel-section">
+        <div id="sdmis-carousel">
+            <!-- SDMIS Carousel will be loaded here -->
+        </div>
+    </section>
 
     <!-- Footer -->
     <footer>
@@ -138,24 +145,24 @@
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
-            <h2>Add New Item</h2>
+            <h2>Ajouter un nouvel élément</h2>
             <div class="form-group">
-                <label for="category-select">Category:</label>
+                <label for="category-select">Catégorie :</label>
                 <select id="category-select">
-                    <option value="">Select a category...</option>
-                    <option value="chiefMessages">Message Encadrement</option>
-                    <option value="amicalistMessages">Message Amicale</option>
+                    <option value="">Sélectionnez une catégorie...</option>
+                    <option value="chiefMessages">Message de l'Encadrement</option>
+                    <option value="amicalistMessages">Message de l'Amicale</option>
                     <option value="recruits">Nouvel Engagé</option>
                     <option value="events">Événement</option>
-                    <option value="flashNews">Flash News</option>
+                    <option value="flashNews">Flash Info</option>
                 </select>
             </div>
             <div id="dynamic-form">
                 <!-- Dynamic inputs will be injected here -->
             </div>
             <div class="modal-actions">
-                <button id="save-btn" class="btn-save" disabled>Save</button>
-                <button id="cancel-btn" class="btn-cancel">Cancel</button>
+                <button id="save-btn" class="btn-save" disabled>Sauvegarder</button>
+                <button id="cancel-btn" class="btn-cancel">Annuler</button>
             </div>
         </div>
     </div>
