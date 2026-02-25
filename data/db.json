@@ -1,31 +1,7 @@
 {
-  "chiefMessages": [
-    {
-      "text": "XQSDFGCH",
-      "author": "marine"
-    }
-  ],
-  "amicalistMessages": [
-    {
-      "text": "qxsdf",
-      "image": "assets/images/1a85225b-145d-456f-8c83-a83e1bb6752f.png",
-      "author": "marine"
-    }
-  ],
-  "recruits": [
-    {
-      "name": "lies",
-      "image": "assets/images/Gemini_Generated_Image_6oof3p6oof3p6oof.png",
-      "description": "qsdfgtdrt-y\n\n- marine"
-    }
-  ],
-  "events": [
-    {
-      "date": "2026-02-25T23:40",
-      "title": "SDFDD",
-      "description": "AQSDFF\n\n- marine",
-      "image": "assets/images/1a85225b-145d-456f-8c83-a83e1bb6752f.png"
-    }
-  ],
+  "chiefMessages": [],
+  "amicalistMessages": [],
+  "recruits": [],
+  "events": [],
   "flashNews": []
 }
