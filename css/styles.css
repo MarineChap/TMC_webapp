@@ -21,6 +21,12 @@
     padding: 0;
 }
 
+html,
+body {
+    height: 100vh;
+    overflow: hidden;
+}
+
 body {
     font-family: var(--font-main);
     color: var(--text-dark);
@@ -31,7 +37,6 @@ body {
     background-size: 600px;
     background-attachment: fixed;
     background-blend-mode: overlay;
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
@@ -93,37 +98,63 @@ nav ul {
 
 /* Layout - Full Width & Fluid */
 .page-container {
-    display: grid;
-    grid-template-columns: clamp(280px, 20vw, 400px) 1fr;
-    gap: 3vw;
-    padding: 3vh 4vw;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5vh 2vw;
+    /* Reduced from 2vh */
     flex: 1;
     width: 100%;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 1.5vw;
+    /* Reduced from 2vw */
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .main-content {
     display: flex;
     flex-direction: column;
-    gap: 4vh;
+    gap: 1.5vh;
+    /* Reduced from 2vh */
 }
 
-.sidebar {
+.sidebar,
+.recruits-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 2.5rem;
-    order: -1;
+    gap: 1vh;
+    overflow: hidden;
+    height: 100%;
+}
+
+.recruits-sidebar #recruits {
+    flex: 1.1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 /* Sections - No Max Width */
 section {
-    padding: 1rem 0;
+    padding: 0.5vh 0;
+    /* Reduced padding */
     width: 100%;
 }
 
 section h2 {
     color: var(--primary-red);
-    font-size: clamp(1.4rem, 2.5vw, 2.2rem);
-    margin-bottom: 2rem;
+    font-size: clamp(1rem, 1.5vw, 1.5rem);
+    /* Slightly smaller */
+    margin-bottom: 0.5vh;
+    /* Reduced margin */
     display: flex;
     align-items: center;
     gap: 15px;
@@ -144,14 +175,17 @@ section h2::after {
     border: 1px solid var(--glass-border);
     border-radius: var(--border-radius);
     box-shadow: var(--card-shadow);
-    padding: 5vh 5vw;
+    padding: 1vh 1.5vw;
     text-align: center;
-    min-height: clamp(350px, 40vh, 600px);
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    /* Start from top for recruits */
     position: relative;
-    transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: 0.4s;
+    overflow: hidden;
 }
 
 .carousel-section h2 {
@@ -167,6 +201,10 @@ section h2::after {
     width: 100%;
     max-width: 1000px;
     margin: 0 auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .carousel-slide {
@@ -175,7 +213,32 @@ section h2::after {
 }
 
 .carousel-slide.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+}
+
+.carousel-slide-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    gap: 1vh;
+}
+
+.carousel-text-content {
+    flex-shrink: 0;
+}
+
+.carousel-big-image {
+    flex: 1;
+    width: 100%;
+    max-height: calc(100% - 100px);
+    /* Leave space for text */
+    object-fit: contain;
+    border-radius: 12px;
+
 }
 
 .carousel-slide blockquote {
@@ -198,7 +261,8 @@ section h2::after {
 
 .carousel-indicators {
     position: absolute;
-    bottom: 30px;
+    bottom: 15px;
+    /* Moved up a bit */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -215,17 +279,20 @@ section h2::after {
     transition: 0.3s;
 }
 
-.indicator.active {
-    width: 40px;
-    border-radius: 10px;
-    opacity: 1;
+/* Event-specific indicators for visibility on red background */
+.event-indicators .indicator {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.event-indicators .indicator.active {
+    background: var(--accent-gold);
 }
 
 /* Sidebar Widgets */
 .weather-widget,
 .future-event {
     border-radius: var(--border-radius);
-    padding: 2.5rem !important;
+    padding: 1.5rem !important;
     box-shadow: var(--card-shadow);
     border: 1px solid var(--glass-border);
 }
@@ -233,12 +300,21 @@ section h2::after {
 .weather-widget {
     background: var(--glass-bg);
     backdrop-filter: blur(15px);
+    padding: 0.5vh 1vw !important;
+    display: flex;
+    align-items: center;
+    gap: 1vw;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--card-shadow);
 }
 
 .weather-widget h2 {
-    font-size: clamp(1.1rem, 1.5vw, 1.4rem);
-    text-align: center;
-    justify-content: center;
+    font-size: clamp(0.9rem, 1.1vw, 1.1rem);
+    text-align: left;
+    margin-bottom: 0;
+    margin-right: 10px;
+    color: var(--primary-red);
 }
 
 .weather-widget h2::after {
@@ -248,27 +324,26 @@ section h2::after {
 .weather-container {
     display: flex;
     gap: 1vw;
-    justify-content: center;
-    width: 100%;
+    justify-content: flex-start;
+    flex: 1;
 }
 
 .weather-day {
-    padding: clamp(1rem, 2vh, 2rem);
+    padding: 0.2vh 0.5vw;
     background: rgba(255, 255, 255, 0.4);
-    border-radius: 15px;
+    border-radius: 12px;
     text-align: center;
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    min-height: clamp(150px, 20vh, 250px);
+    justify-content: center;
+    min-height: 0;
 }
 
 .weather-icon {
-    font-size: clamp(3.5rem, 8vw, 6rem);
-    /* Substantially larger */
-    margin: 0.5rem 0;
+    font-size: 1.6rem;
+    margin: 0.1rem 0;
     line-height: 1;
     display: flex;
     align-items: center;
@@ -293,11 +368,35 @@ section h2::after {
     color: var(--text-light);
     border: none;
     box-shadow: 0 15px 40px var(--primary-red-glow);
+    flex: 1;
+    /* Occupy full height in left column */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    /* Added for indicators */
+    padding-bottom: 45px !important;
+    /* Space for indicators */
+    max-height: calc(100% - 1vh);
+    /* Ensure it stays within sidebar */
 }
+
+#events-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8vh;
+    position: relative;
+    overflow: hidden;
+    /* Remove scrollbar */
+}
+
+/* Remove custom scrollbar styles as they are no longer needed */
 
 .future-event h2 {
     color: var(--text-light) !important;
     justify-content: center;
+    font-size: clamp(1.1rem, 1.4vw, 1.6rem);
+    margin-bottom: 1vh;
 }
 
 .future-event h2::after {
@@ -307,22 +406,38 @@ section h2::after {
 .event-card {
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 1.8rem;
+    padding: 1vh !important;
     border-radius: 15px;
-    margin-bottom: 1.5rem;
+    transition: transform 0.3s;
+    backdrop-filter: blur(5px);
+}
+
+.event-card:hover {
+    transform: scale(1.02);
+    background: rgba(255, 255, 255, 0.18);
 }
 
 .event-date {
     color: var(--accent-gold);
-    font-size: 1.3rem;
+    font-size: clamp(0.9rem, 1.1vw, 1.2rem);
     font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.5vh;
+    text-transform: capitalize;
+}
+
+.event-date::before {
+    content: '📅';
+    font-size: 1.1em;
 }
 
 /* Recruits Grid - Fluid */
 .recruits-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(clamp(250px, 15vw, 400px), 1fr));
-    gap: 30px;
+    gap: 40px;
 }
 
 .recruit-card {
@@ -533,11 +648,12 @@ section h2::after {
 
 /* Footer - Full Width */
 footer {
-    padding: 6vh 4vw;
+    padding: 1vh 4vw;
     background: #080808;
     color: #666;
     text-align: center;
     border-top: 1px solid #1a1a1a;
+    font-size: 0.8rem;
 }
 
 /* Animations */
@@ -613,14 +729,17 @@ main>section {
 /* SDMIS News Carousel Styles */
 #sdmis-carousel-section {
     padding: 0;
-    margin: 4vh 0;
+    margin-top: 1.5vh;
     width: 100%;
-    min-height: 400px;
+    height: 14vh;
+    /* Increased height as requested */
+    flex-shrink: 0;
+    border-top: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 #sdmis-carousel {
     width: 100%;
-    height: 600px;
+    height: 100%;
     position: relative;
     overflow: hidden;
     background-color: transparent;
@@ -637,12 +756,16 @@ main>section {
     left: 0;
     width: 100%;
     height: 100%;
-    background-size: cover;
+    background-size: contain;
+    /* Changed from cover to see all text/image */
+    background-repeat: no-repeat;
     background-position: center;
     opacity: 0;
     transition: opacity 1s ease-in-out;
     display: flex;
     align-items: flex-end;
+    background-color: #000;
+    /* Background color for contained images */
 }
 
 .sdmis-slide.active {
@@ -652,8 +775,9 @@ main>section {
 
 .sdmis-overlay {
     width: 100%;
-    padding: 120px 5vw 60px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%);
+    padding: 1.5vh 2vw;
+    /* Reduced padding */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%);
     color: white;
 }
 
@@ -663,18 +787,18 @@ main>section {
 }
 
 .sdmis-title {
-    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
     font-weight: 800;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     line-height: 1.1;
     text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
     color: white !important;
 }
 
 .sdmis-excerpt {
-    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    font-size: clamp(0.8rem, 1.2vw, 1rem);
     max-width: 800px;
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
     opacity: 0.9;
     text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
 }
@@ -690,6 +814,13 @@ main>section {
     letter-spacing: 0.1em;
     transition: all 0.3s ease;
     border: 2px solid transparent;
+}
+
+/* Hide link on TV/Desktop view per user request */
+@media (min-width: 1024px) {
+    .sdmis-link {
+        display: none;
+    }
 }
 
 .sdmis-link:hover {

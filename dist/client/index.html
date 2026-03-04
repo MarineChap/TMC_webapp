@@ -12,7 +12,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/styles.css">
+  <script type="module" crossorigin src="/assets/main-Bj9HW_nU.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-K85K7b60.css">
 </head>
 
 <body>
@@ -42,65 +43,57 @@
     </div>
 
     <div class="page-container">
-        <!-- Dashboard Content Grid -->
-        <div class="dashboard-grid">
-            <!-- Column 1: Info & Events -->
-            <aside class="sidebar">
+        <main class="main-content">
+            <!-- Chief's Carousel Section -->
+            <section id="chief-messages" class="carousel-section">
+                <h2>Messages de l'encadrement</h2>
+                <div id="chief-carousel" class="carousel-container">
+                    <div class="carousel-indicators"></div>
+                </div>
+            </section>
 
-                <!-- Future Event Section -->
-                <section id="events" class="future-event">
-                    <h2>Événements</h2>
-                    <div id="events-container">
-                        <!-- Events will be loaded here -->
-                    </div>
-                </section>
-            </aside>
+            <!-- Amicalist's Carousel Section -->
+            <section id="amicalist-messages" class="carousel-section">
+                <h2>Messages de l'amicale</h2>
+                <div id="amicalist-carousel" class="carousel-container">
+                    <div class="carousel-indicators"></div>
+                </div>
+            </section>
 
-            <!-- Column 2: Messages -->
-            <main class="main-content">
-                <!-- Chief's Carousel Section -->
-                <section id="chief-messages" class="carousel-section">
-                    <h2>Messages Encadrement</h2>
-                    <div id="chief-carousel" class="carousel-container">
-                        <div class="carousel-indicators"></div>
-                    </div>
-                </section>
+            <!-- New Recruits Section -->
+            <section id="recruits">
+                <h2>Bienvenue à nos nouveaux engagés !</h2>
+                <div class="recruits-grid" id="recruits-grid">
+                    <!-- Recruits will be loaded here -->
+                </div>
+            </section>
+        </main>
 
-                <!-- Amicalist's Carousel Section -->
-                <section id="amicalist-messages" class="carousel-section">
-                    <h2>Messages Amicale</h2>
-                    <div id="amicalist-carousel" class="carousel-container">
-                        <div class="carousel-indicators"></div>
-                    </div>
-                </section>
-            </main>
+        <aside class="sidebar">
+            <!-- Weather Widget -->
+            <section id="weather-widget" class="weather-widget">
+                <h2>Météo locale</h2>
+                <div id="weather-container" class="weather-container">
+                    <div class="weather-loading">Chargement...</div>
+                </div>
+            </section>
 
-            <!-- Column 3: Recruits -->
-            <aside class="recruits-sidebar">
-                <!-- Weather Widget -->
-                <section id="weather-widget" class="weather-widget">
-                    <h2>Météo</h2>
-                    <div id="weather-container" class="weather-container">
-                        <div class="weather-loading">Chargement...</div>
-                    </div>
-                </section>
-
-                <section id="recruits" class="carousel-section">
-                    <h2>Nouveaux Engagés</h2>
-                    <div id="recruits-carousel" class="carousel-container">
-                        <div class="carousel-indicators"></div>
-                    </div>
-                </section>
-            </aside>
-        </div>
-
-        <!-- SDMIS News Carousel at the bottom -->
-        <section id="sdmis-carousel-section">
-            <div id="sdmis-carousel">
-                <!-- SDMIS Carousel will be loaded here -->
-            </div>
-        </section>
+            <!-- Future Event Section -->
+            <section id="events" class="future-event">
+                <h2>Événements à venir</h2>
+                <div id="events-container">
+                    <!-- Events will be loaded here -->
+                </div>
+            </section>
+        </aside>
     </div>
+
+    <!-- SDMIS News Carousel -->
+    <section id="sdmis-carousel-section">
+        <div id="sdmis-carousel">
+            <!-- SDMIS Carousel will be loaded here -->
+        </div>
+    </section>
 
     <!-- Footer -->
     <footer>
@@ -113,22 +106,18 @@
             <span class="close-login-btn"
                 style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
             <h2>Connexion</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="login-username">Nom d'utilisateur :</label>
-                    <input type="text" id="login-username" name="username" placeholder="Votre nom d'utilisateur"
-                        required>
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Mot de passe :</label>
-                    <input type="password" id="login-password" name="password" placeholder="Votre mot de passe"
-                        required>
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" id="login-submit-btn" class="btn-save">Se connecter</button>
-                    <button type="button" id="login-cancel-btn" class="btn-cancel">Annuler</button>
-                </div>
-            </form>
+            <div class="form-group">
+                <label for="login-username">Nom d'utilisateur :</label>
+                <input type="text" id="login-username" placeholder="Votre nom d'utilisateur">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Mot de passe :</label>
+                <input type="password" id="login-password" placeholder="Votre mot de passe">
+            </div>
+            <div class="modal-actions">
+                <button id="login-submit-btn" class="btn-save">Se connecter</button>
+                <button id="login-cancel-btn" class="btn-cancel">Annuler</button>
+            </div>
         </div>
     </div>
 
@@ -138,22 +127,18 @@
             <span class="close-signup-btn"
                 style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
             <h2>Inscription</h2>
-            <form id="signup-form">
-                <div class="form-group">
-                    <label for="signup-username">Nom d'utilisateur :</label>
-                    <input type="text" id="signup-username" name="username"
-                        placeholder="Choisissez un nom d'utilisateur" required>
-                </div>
-                <div class="form-group">
-                    <label for="signup-password">Mot de passe :</label>
-                    <input type="password" id="signup-password" name="password"
-                        placeholder="Mot de passe (min 6 caractères)" required>
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" id="signup-submit-btn" class="btn-save">S'inscrire</button>
-                    <button type="button" id="signup-cancel-btn" class="btn-cancel">Annuler</button>
-                </div>
-            </form>
+            <div class="form-group">
+                <label for="signup-username">Nom d'utilisateur :</label>
+                <input type="text" id="signup-username" placeholder="Choisissez un nom d'utilisateur">
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Mot de passe :</label>
+                <input type="password" id="signup-password" placeholder="Mot de passe (min 6 caractères)">
+            </div>
+            <div class="modal-actions">
+                <button id="signup-submit-btn" class="btn-save">S'inscrire</button>
+                <button id="signup-cancel-btn" class="btn-cancel">Annuler</button>
+            </div>
         </div>
     </div>
 
@@ -199,7 +184,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="/src/client/script.ts"></script>
 </body>
 
 </html>

@@ -3,6 +3,36 @@ import { SdmisNewsCarousel } from './sdmisCarousel';
 let currentUser: any = null;
 let isUserValidated = false;
 
+interface CarouselItem {
+    text?: string;
+    description?: string;
+    author?: string;
+    title?: string;
+    image?: string;
+    name?: string;
+}
+
+interface EventItem {
+    date: string;
+    title: string;
+    description: string;
+    image?: string;
+}
+
+interface FlashNewsItem {
+    text: string;
+    startTime: string;
+    endTime: string;
+}
+
+interface DbData {
+    chiefMessages: CarouselItem[];
+    amicalistMessages: CarouselItem[];
+    recruits: CarouselItem[];
+    events: EventItem[];
+    flashNews: FlashNewsItem[];
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initSupabaseAuth();
@@ -29,7 +59,7 @@ async function checkInitialLogsRoute() {
     }
 }
 
-let currentFlashNews = [];
+let currentFlashNews: FlashNewsItem[] = [];
 
 async function displayServerIP() {
     try {
@@ -57,11 +87,11 @@ async function loadData() {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
+        const data: DbData = await response.json();
 
         renderCarousel('chief-carousel', data.chiefMessages);
         renderCarousel('amicalist-carousel', data.amicalistMessages);
-        renderRecruits(data.recruits);
+        renderCarousel('recruits-carousel', data.recruits, true); // True for recruits specific rendering
         renderEvents(data.events);
 
         currentFlashNews = data.flashNews || [];
@@ -70,6 +100,7 @@ async function loadData() {
         // Initialize carousel logic after rendering
         initCarousel('chief-carousel');
         initCarousel('amicalist-carousel');
+        initCarousel('recruits-carousel');
 
     } catch (error) {
         console.error('Could not load data:', error);
@@ -101,7 +132,7 @@ function startAutoReload() {
     }, 2000); // Check every 2 seconds
 }
 
-function renderCarousel(containerId, messages) {
+function renderCarousel(containerId: string, messages: CarouselItem[], isRecruit: boolean = false) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -109,36 +140,75 @@ function renderCarousel(containerId, messages) {
     const existingSlides = container.querySelectorAll('.carousel-slide');
     existingSlides.forEach(slide => slide.remove());
 
-    const nav = container.querySelector('.carousel-nav');
+    const indicators = container.querySelector('.carousel-indicators');
 
-    messages.forEach((msg, index) => {
-        const slide = document.createElement('div');
-        slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
-
-        let content = '';
-        if (msg.image) {
-            content += `<div style="display: flex; align-items: center; gap: 20px; text-align: left;">
-                <img src="${msg.image}" alt="Image" style="max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 5px;">
-                <div>`;
+    if (isRecruit) {
+        // Group recruits into chunks of 6 for the TV display
+        const chunkSize = 6;
+        const chunks: CarouselItem[][] = [];
+        for (let i = 0; i < messages.length; i += chunkSize) {
+            chunks.push(messages.slice(i, i + chunkSize));
         }
 
-        content += `<blockquote>"${msg.text || msg.description || ''}"</blockquote>`;
-        if (msg.author) {
-            content += `<cite>- ${msg.author}</cite>`;
-        } else if (msg.title) {
-            content += `<cite><strong>${msg.title}</strong></cite>`;
-        }
+        chunks.forEach((chunk, index) => {
+            const slide = document.createElement('div');
+            slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
 
-        if (msg.image) {
-            content += `</div></div>`;
-        }
+            slide.innerHTML = `
+                <div class="recruits-grid-mini" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 1vh; height: 100%; width: 100%;">
+                    ${chunk.map(msg => `
+                        <div class="recruit-card" style="height: 100%; display: flex; flex-direction: column; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                            <img src="${msg.image}" alt="${msg.name}" style="width: 100%; height: 11vh; object-fit: cover;">
+                            <div class="recruit-info" style="padding: 0.8vh; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                                <div class="recruit-name" style="font-size: clamp(1rem, 1.2vw, 1.3rem); font-weight: 700; color: var(--primary-red); line-height: 1.1; margin-bottom: 0.3vh;">${msg.name}</div>
+                                <p style="font-size: clamp(0.7rem, 0.9vw, 1rem); margin-top: 0; line-height: 1.1; opacity: 0.8;">${msg.description}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            if (indicators) {
+                container.insertBefore(slide, indicators);
+            } else {
+                container.appendChild(slide);
+            }
+        });
+    } else {
+        messages.forEach((msg: CarouselItem, index: number) => {
+            const slide = document.createElement('div');
+            slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
 
-        slide.innerHTML = content;
-        container.insertBefore(slide, nav);
-    });
+            let content = '';
+            if (msg.image) {
+                content = `
+                    <div class="carousel-slide-content">
+                        <div class="carousel-text-content">
+                            <blockquote style="font-size: 1.5rem;">"${msg.text || msg.description || ''}"</blockquote>
+                            ${msg.author ? `<cite>- ${msg.author}</cite>` : (msg.title ? `<cite><strong>${msg.title}</strong></cite>` : '')}
+                        </div>
+                        <img src="${msg.image}" alt="Image" class="carousel-big-image">
+                    </div>
+                `;
+            } else {
+                content += `<blockquote style="font-size: 1.5rem;">"${msg.text || msg.description || ''}"</blockquote>`;
+                if (msg.author) {
+                    content += `<cite>- ${msg.author}</cite>`;
+                } else if (msg.title) {
+                    content += `<cite><strong>${msg.title}</strong></cite>`;
+                }
+            }
+
+            slide.innerHTML = content;
+            if (indicators) {
+                container.insertBefore(slide, indicators);
+            } else {
+                container.appendChild(slide);
+            }
+        });
+    }
 }
 
-function renderRecruits(recruits) {
+function renderRecruits(recruits: CarouselItem[]) {
     const grid = document.getElementById('recruits-grid');
     if (!grid) return;
 
@@ -153,24 +223,88 @@ function renderRecruits(recruits) {
     `).join('');
 }
 
-function renderEvents(events) {
+function renderEvents(events: EventItem[]) {
     const container = document.getElementById('events-container');
     if (!container) return;
 
-    container.innerHTML = events.map(event => `
-        <div class="event-card">
-            <div class="event-date">${event.date}</div>
-            ${event.image ? `<img src="${event.image}" alt="${event.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">` : ''}
-            <h3>${event.title}</h3>
-            <p>${event.description}</p>
-        </div>
-    `).join('');
+    // Clear existing content and indicators
+    container.innerHTML = '';
+    const section = container.closest('.future-event');
+    let indicators = section?.querySelector('.carousel-indicators');
+    if (indicators) indicators.innerHTML = '';
+
+    if (!events || events.length === 0) {
+        container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Aucun événement prévu.</p>';
+        return;
+    }
+
+    // Group events into chunks of 2
+    const pages: EventItem[][] = [];
+    for (let i = 0; i < events.length; i += 2) {
+        pages.push(events.slice(i, i + 2));
+    }
+
+    console.log(`[Events] Total pages: ${pages.length}`, pages);
+
+    if (pages.length === 1 && pages[0].length === 1) {
+        // Single page rendering (only 1 event total)
+        container.innerHTML = pages[0].map(event => renderEventCard(event)).join('');
+    } else {
+        // Carousel mode or multiple events on single page
+        let slidesHtml = pages.map((page, index) => `
+            <div class="carousel-slide ${index === 0 ? 'active' : ''}" style="height: 100%; flex-direction: column; gap: 0.5vh;">
+                ${page.map(event => renderEventCard(event)).join('')}
+            </div>
+        `).join('');
+
+        // Put slides and indicators in the container
+        container.innerHTML = slidesHtml + (pages.length > 1 ? '<div class="carousel-indicators event-indicators"></div>' : '');
+
+        // Initialize carousel logic for events if multiple pages
+        if (pages.length > 1) {
+            initCarousel('events-container');
+        }
+    }
 }
 
-function renderFlashNews(newsItems) {
+function renderEventCard(event: EventItem): string {
+    const hasImage = !!event.image;
+
+    // Format date nicely: "Mer. 4 Mars - 14:30"
+    let formattedDate = event.date;
+    try {
+        const dateObj = new Date(event.date);
+        const options: Intl.DateTimeFormatOptions = {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        formattedDate = new Intl.DateTimeFormat('fr-FR', options).format(dateObj);
+        formattedDate = formattedDate.replace(',', ' -');
+        formattedDate = formattedDate.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    } catch (e) {
+        console.error("Error formatting date:", e);
+    }
+
+    return `
+        <div class="event-card" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+            <div class="event-date">${formattedDate}</div>
+            ${event.image ? `<img src="${event.image}" alt="${event.title}" style="flex: 1; width: 100%; min-height: 0; object-fit: contain; border-radius: 8px; margin-bottom: 0.3vh; background: rgba(0,0,0,0.2);">` : ''}
+            <div style="flex-shrink: 0;">
+                <h3 style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0.2vh; font-weight: 700; color: white;">${event.title}</h3>
+                <p style="font-size: clamp(0.75rem, 0.9vw, 1rem); margin-bottom: 0; line-height: 1.1; opacity: 0.9; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.description}</p>
+            </div>
+        </div>
+    `;
+}
+
+function renderFlashNews(newsItems: FlashNewsItem[]) {
     const container = document.getElementById('flash-news-container');
+    if (!container) return;
     const content = container.querySelector('.flash-news-content');
-    if (!container || !content) return;
+    if (!content) return;
 
     if (!newsItems || newsItems.length === 0) {
         container.style.display = 'none';
@@ -193,7 +327,10 @@ function renderFlashNews(newsItems) {
     }
 }
 
-function initCarousel(carouselId) {
+// Global state for carousels to manage auto-play and current index across re-renders
+const carouselStates: Record<string, { interval: any, currentIndex: number }> = {};
+
+function initCarousel(carouselId: string) {
     const container = document.getElementById(carouselId);
     if (!container) return;
 
@@ -201,8 +338,18 @@ function initCarousel(carouselId) {
     if (slides.length === 0) return;
 
     const indicatorsContainer = container.querySelector('.carousel-indicators');
-    let currentIndex = 0;
-    let autoPlayInterval;
+
+    // Clear existing interval if it exists
+    if (carouselStates[carouselId]) {
+        clearInterval(carouselStates[carouselId].interval);
+    } else {
+        carouselStates[carouselId] = { interval: null, currentIndex: 0 };
+    }
+
+    const state = carouselStates[carouselId];
+    if (state.currentIndex >= slides.length) {
+        state.currentIndex = 0;
+    }
 
     // Generate Indicators
     if (indicatorsContainer) {
@@ -211,16 +358,15 @@ function initCarousel(carouselId) {
             const indicator = document.createElement('div');
             indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
             indicator.addEventListener('click', () => {
-                currentIndex = index;
-                showSlide(currentIndex);
-                stopAutoPlay();
+                state.currentIndex = index;
+                showSlide(state.currentIndex);
                 startAutoPlay();
             });
             indicatorsContainer.appendChild(indicator);
         });
     }
 
-    function showSlide(index) {
+    function showSlide(index: number) {
         slides.forEach((slide, i) => {
             slide.classList.remove('active');
             if (i === index) {
@@ -241,23 +387,23 @@ function initCarousel(carouselId) {
     }
 
     function nextSlide() {
-        currentIndex = (currentIndex + 1) % slides.length;
-        showSlide(currentIndex);
+        state.currentIndex = (state.currentIndex + 1) % slides.length;
+        showSlide(state.currentIndex);
     }
 
     function startAutoPlay() {
-        if (autoPlayInterval) clearInterval(autoPlayInterval);
-        autoPlayInterval = setInterval(nextSlide, 5000);
+        if (state.interval) clearInterval(state.interval);
+        state.interval = setInterval(nextSlide, 5000);
     }
 
     function stopAutoPlay() {
-        clearInterval(autoPlayInterval);
+        if (state.interval) clearInterval(state.interval);
     }
 
     container.addEventListener('mouseenter', stopAutoPlay);
     container.addEventListener('mouseleave', startAutoPlay);
 
-    showSlide(currentIndex);
+    showSlide(state.currentIndex);
     startAutoPlay();
 }
 
@@ -272,7 +418,7 @@ function initEditModal() {
     const categorySelect = document.getElementById('category-select') as HTMLSelectElement;
     const dynamicForm = document.getElementById('dynamic-form');
 
-    if (!modal || !editBtn) return;
+    if (!modal || !editBtn || !saveBtn || !categorySelect || !dynamicForm) return;
 
     // Open Edit Modal directly (auth is handled by button visibility/state)
     editBtn.addEventListener('click', () => {
@@ -285,14 +431,14 @@ function initEditModal() {
 
     // Close Modal
     function closeModal() {
-        modal.style.display = 'none';
-        categorySelect.value = "";
-        dynamicForm.innerHTML = "";
-        saveBtn.disabled = true;
+        if (modal) modal.style.display = 'none';
+        if (categorySelect) categorySelect.value = "";
+        if (dynamicForm) dynamicForm.innerHTML = "";
+        if (saveBtn) saveBtn.disabled = true;
     }
 
-    closeBtn.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
 
     // Will be handled globally or we can keep this, but let's be careful with multiple modals.
     // For now, keep it on modal itself.
@@ -304,7 +450,8 @@ function initEditModal() {
 
     // Handle Category Selection
     categorySelect.addEventListener('change', async (e) => {
-        const target = e.target as HTMLSelectElement; const category = target.value;
+        const target = e.target as HTMLSelectElement;
+        const category = target.value;
         dynamicForm.innerHTML = "";
         const existingItemsContainer = document.getElementById('existing-items-container');
         if (existingItemsContainer) existingItemsContainer.remove();
@@ -333,16 +480,16 @@ function initEditModal() {
     // Handle Save
     saveBtn.addEventListener('click', async () => {
         const category = categorySelect.value;
-        if (!category) return;
+        if (!category || !dynamicForm) return;
 
-        const formData = {};
+        const formData: Record<string, any> = {};
         const inputs = dynamicForm.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
 
         // Handle File Upload first if present
         const fileInput = dynamicForm.querySelector('input[type="file"]') as HTMLInputElement;
         let uploadedImagePath = '';
 
-        if (fileInput && fileInput.files.length > 0) {
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             try {
                 // Upload the file using FormData
@@ -374,9 +521,6 @@ function initEditModal() {
                 if (uploadedImagePath) {
                     formData[input.name] = uploadedImagePath;
                 }
-                // If no file uploaded, maybe keep existing? For now, if required, validation will catch empty.
-                // Or if it's an edit of existing item (not implemented yet fully for edit), we'd need to handle that.
-                // For new item, if no file, it's empty string.
             } else {
                 formData[input.name] = input.value;
             }
@@ -397,7 +541,7 @@ function initEditModal() {
         if (currentUser && currentUser.username) {
             if (category === 'chiefMessages' || category === 'amicalistMessages') {
                 formData['author'] = currentUser.username;
-            } else if (category === 'events' || category === 'recruits' || category === 'flashNews') {
+            } else if (category === 'events' || category === 'flashNews') {
                 if (formData['description'] !== undefined) {
                     formData['description'] += `\n\n - ${currentUser.username}`;
                 } else if (formData['text'] !== undefined) {
@@ -407,11 +551,9 @@ function initEditModal() {
         }
 
         // Basic Validation
-        for (const key in formData) {
-            if (!formData[key]) {
-                alert('Remplissez tous les champs svp!');
-                return;
-            }
+        if (category === 'recruits' && !uploadedImagePath) {
+            alert('La photo est obligatoire pour une nouvelle recrue !');
+            return;
         }
 
         // Send to Server
@@ -441,8 +583,8 @@ function initEditModal() {
     });
 }
 
-function renderFormFields(category, container) {
-    let fields = [];
+function renderFormFields(category: string, container: HTMLElement) {
+    let fields: any[] = [];
 
     switch (category) {
         case 'chiefMessages':
@@ -493,7 +635,7 @@ function renderFormFields(category, container) {
     container.innerHTML = html;
 }
 
-function renderExistingItems(category, items, container) {
+function renderExistingItems(category: string, items: any[], container: HTMLElement) {
     const listContainer = document.createElement('div');
     listContainer.id = 'existing-items-container';
     listContainer.style.marginTop = '20px';
@@ -545,10 +687,12 @@ function renderExistingItems(category, items, container) {
     });
 
     listContainer.appendChild(list);
-    container.parentNode.insertBefore(listContainer, container.nextSibling);
+    if (container.parentNode) {
+        container.parentNode.insertBefore(listContainer, container.nextSibling);
+    }
 }
 
-async function deleteItem(category, item) {
+async function deleteItem(category: string, item: any) {
     try {
         const response = await fetch('/api/delete', {
             method: 'POST',
@@ -565,7 +709,7 @@ async function deleteItem(category, item) {
             alert('Item supprimé!');
             // Refresh the list
             const categorySelect = document.getElementById('category-select') as HTMLSelectElement;
-            categorySelect.dispatchEvent(new Event('change'));
+            if (categorySelect) categorySelect.dispatchEvent(new Event('change'));
             loadData(); // Refresh main view
         } else {
             alert('Impossible de supprimer cet item.');
@@ -620,22 +764,7 @@ async function fetchWeather() {
     }
 }
 
-function getWeatherIcon(code) {
-    // WMO Weather interpretation codes (WW)
-    // 0: Clear sky
-    // 1, 2, 3: Mainly clear, partly cloudy, and overcast
-    // 45, 48: Fog and depositing rime fog
-    // 51, 53, 55: Drizzle: Light, moderate, and dense intensity
-    // 56, 57: Freezing Drizzle: Light and dense intensity
-    // 61, 63, 65: Rain: Slight, moderate and heavy intensity
-    // 66, 67: Freezing Rain: Light and heavy intensity
-    // 71, 73, 75: Snow fall: Slight, moderate, and heavy intensity
-    // 77: Snow grains
-    // 80, 81, 82: Rain showers: Slight, moderate, and violent
-    // 85, 86: Snow showers slight and heavy
-    // 95: Thunderstorm: Slight or moderate
-    // 96, 99: Thunderstorm with slight and heavy hail
-
+function getWeatherIcon(code: number): string {
     if (code === 0) return '☀️';
     if (code >= 1 && code <= 3) return '⛅';
     if (code >= 45 && code <= 48) return '🌫️';
@@ -647,7 +776,7 @@ function getWeatherIcon(code) {
     return '❓';
 }
 
-function getWeatherDesc(code) {
+function getWeatherDesc(code: number): string {
     if (code === 0) return 'Ensoleillé';
     if (code >= 1 && code <= 3) return 'Nuageux';
     if (code >= 45 && code <= 48) return 'Brouillard';
@@ -686,7 +815,7 @@ async function initSupabaseAuth() {
     setupLogsModal();
 }
 
-function handleSession(user) {
+function handleSession(user: any) {
     currentUser = user;
     isUserValidated = user.is_validated;
     updateAuthUI();
@@ -709,14 +838,13 @@ function updateAuthUI() {
                 editBtn.style.display = 'block';
                 editBtn.disabled = false;
                 editBtn.title = '';
-                editBtn.style.opacity = '1';
-                editBtn.style.cursor = 'pointer';
             }
             if (logsBtn) logsBtn.style.display = 'block';
         } else {
             if (editBtn) {
                 editBtn.style.display = 'block';
-                editBtn.title = 'Compte en attente de validation';
+                editBtn.disabled = true;
+                editBtn.title = 'Votre compte est en attente de validation par un administrateur.';
             }
             if (logsBtn) logsBtn.style.display = 'none';
         }
@@ -730,197 +858,134 @@ function updateAuthUI() {
 }
 
 function setupAuthModals() {
+    const loginModal = document.getElementById('login-modal');
+    const signupModal = document.getElementById('signup-modal');
     const loginBtn = document.getElementById('login-btn');
     const signupBtn = document.getElementById('signup-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const closeBtns = document.querySelectorAll('.close-btn');
 
-    const loginModal = document.getElementById('login-modal');
-    const signupModal = document.getElementById('signup-modal');
+    if (loginBtn && loginModal) {
+        loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
+    }
+    if (signupBtn && signupModal) {
+        signupBtn.addEventListener('click', () => signupModal.style.display = 'block');
+    }
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('access_token');
+            currentUser = null;
+            isUserValidated = false;
+            updateAuthUI();
+        });
+    }
 
-    // Login Elements
-    const loginSubmit = document.getElementById('login-submit-btn') as HTMLButtonElement;
-    const loginCancel = document.getElementById('login-cancel-btn');
-    const loginClose = document.querySelector('.close-login-btn');
-    const loginUsernameInput = document.getElementById('login-username') as HTMLInputElement;
-    const loginPasswordInput = document.getElementById('login-password') as HTMLInputElement;
-
-    // Signup Elements
-    const signupSubmit = document.getElementById('signup-submit-btn') as HTMLButtonElement;
-    const signupCancel = document.getElementById('signup-cancel-btn');
-    const signupClose = document.querySelector('.close-signup-btn');
-    const signupUsernameInput = document.getElementById('signup-username') as HTMLInputElement;
-    const signupPasswordInput = document.getElementById('signup-password') as HTMLInputElement;
-
-    if (loginBtn) loginBtn.addEventListener('click', () => { loginModal.style.display = 'block'; });
-    if (signupBtn) signupBtn.addEventListener('click', () => { signupModal.style.display = 'block'; });
-    if (logoutBtn) logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('access_token');
-        currentUser = null;
-        isUserValidated = false;
-        updateAuthUI();
+    closeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (loginModal) loginModal.style.display = 'none';
+            if (signupModal) signupModal.style.display = 'none';
+        });
     });
-
-    const closeLogin = () => { loginModal.style.display = 'none'; loginUsernameInput.value = ''; loginPasswordInput.value = ''; };
-    const closeSignup = () => { signupModal.style.display = 'none'; signupUsernameInput.value = ''; signupPasswordInput.value = ''; };
-
-    if (loginCancel) loginCancel.addEventListener('click', closeLogin);
-    if (loginClose) loginClose.addEventListener('click', closeLogin);
-
-    if (signupCancel) signupCancel.addEventListener('click', closeSignup);
-    if (signupClose) signupClose.addEventListener('click', closeSignup);
 
     window.addEventListener('click', (event) => {
-        if (event.target === loginModal) closeLogin();
-        if (event.target === signupModal) closeSignup();
+        if (event.target === loginModal) if (loginModal) loginModal.style.display = 'none';
+        if (event.target === signupModal) if (signupModal) signupModal.style.display = 'none';
     });
 
-    // Handle Login
-    if (loginSubmit) loginSubmit.addEventListener('click', async () => {
-        const username = loginUsernameInput.value.trim();
-        const password = loginPasswordInput.value;
-        if (!username || !password) return alert("Veuillez remplir tous les champs.");
+    // Handle Forms
+    const loginForm = document.getElementById('login-form') as HTMLFormElement;
+    const signupForm = document.getElementById('signup-form') as HTMLFormElement;
 
-        loginSubmit.disabled = true;
-        loginSubmit.textContent = 'Connexion...';
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = (document.getElementById('login-username') as HTMLInputElement).value;
+            const password = (document.getElementById('login-password') as HTMLInputElement).value;
 
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            if (response.ok) {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
                 const data = await response.json();
-                localStorage.setItem('access_token', data.access_token);
-                handleSession(data.user);
-                closeLogin();
-            } else {
-                const err = await response.json();
-                alert('Erreur de connexion : ' + err.detail);
+                if (response.ok) {
+                    localStorage.setItem('access_token', data.access_token);
+                    handleSession(data.user);
+                    if (loginModal) loginModal.style.display = 'none';
+                } else {
+                    alert(data.detail);
+                }
+            } catch (error) {
+                console.error('Login failed', error);
             }
-        } catch (error) {
-            alert('Erreur de réseau.');
-        }
+        });
+    }
 
-        loginSubmit.disabled = false;
-        loginSubmit.textContent = 'Se connecter';
-    });
+    if (signupForm) {
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = (document.getElementById('signup-username') as HTMLInputElement).value;
+            const password = (document.getElementById('signup-password') as HTMLInputElement).value;
 
-    // Handle Signup
-    if (signupSubmit) signupSubmit.addEventListener('click', async () => {
-        const username = signupUsernameInput.value.trim();
-        const password = signupPasswordInput.value;
-        if (!username || !password) return alert("Veuillez remplir tous les champs.");
-        if (password.length < 6) return alert("Le mot de passe doit faire au moins 6 caractères.");
-
-        signupSubmit.disabled = true;
-        signupSubmit.textContent = 'Inscription...';
-
-        try {
-            const response = await fetch('/api/auth/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            if (response.ok) {
-                alert("Inscription réussie ! Un administrateur doit maintenant valider votre compte.");
-                closeSignup();
-            } else {
-                const err = await response.json();
-                alert('Erreur: ' + err.detail);
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Compte créé ! Un administrateur doit valider votre compte.');
+                    if (signupModal) signupModal.style.display = 'none';
+                } else {
+                    alert(data.detail);
+                }
+            } catch (error) {
+                console.error('Signup failed', error);
             }
-        } catch (error) {
-            alert('Erreur de réseau.');
-        }
-
-        signupSubmit.disabled = false;
-        signupSubmit.textContent = "S'inscrire";
-    });
+        });
+    }
 }
 
 function setupLogsModal() {
-    const logsList = document.getElementById('logs-list');
-    const logsBtn = document.getElementById('logs-btn');
     const logsModal = document.getElementById('logs-modal');
-    const closeBtn = document.querySelector('.close-logs-btn');
-    const closeFooterBtn = document.getElementById('close-logs-footer-btn');
+    const logsBtn = document.getElementById('logs-btn');
+    const logsContent = document.getElementById('logs-content');
+    const closeBtn = logsModal?.querySelector('.close-btn');
 
-    if (!logsBtn || !logsModal || !logsList) return;
-
-    logsBtn.addEventListener('click', async () => {
-        logsModal.style.display = 'block';
-        logsList.innerHTML = '<p>Chargement des logs...</p>';
-
-        try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/logs', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (response.ok) {
-                const logs = await response.json();
-                renderLogs(logs);
-            } else {
-                logsList.innerHTML = '<p style="color: red;">Erreur lors du chargement des logs.</p>';
+    if (logsBtn && logsModal) {
+        logsBtn.addEventListener('click', async () => {
+            logsModal.style.display = 'block';
+            if (logsContent) logsContent.innerHTML = 'Chargement...';
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/logs', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const logs = await response.json();
+                    if (logsContent) {
+                        logsContent.innerHTML = logs.map((log: any) => `
+                        <div class="log-entry" style="border-bottom: 1px solid #444; padding: 10px 0;">
+                            <span style="color: #666; font-size: 0.8em;">${new Date(log.timestamp).toLocaleString()}</span>
+                            <span style="color: var(--primary-red); font-weight: bold; margin: 0 10px;">${log.username}</span>
+                            <span>${log.action}</span>
+                            <div style="font-size: 0.9em; color: #aaa; margin-top: 5px;">${JSON.stringify(log.details)}</div>
+                        </div>
+                    `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Logs fetch failed', error);
+                if (logsContent) logsContent.innerHTML = 'Erreur lors du chargement des logs.';
             }
-        } catch (error: any) {
-            console.error('Logs fetch error:', error);
-            logsList.innerHTML = `<p style="color: red;">Erreur de connexion: ${error.message || error}</p>`;
-        }
-    });
-
-    const close = () => { logsModal.style.display = 'none'; };
-    if (closeBtn) closeBtn.addEventListener('click', close);
-    if (closeFooterBtn) closeFooterBtn.addEventListener('click', close);
-
-    window.addEventListener('click', (event) => {
-        if (event.target === logsModal) close();
-    });
-}
-
-function renderLogs(logs: any[]) {
-    const logsList = document.getElementById('logs-list');
-    if (!logsList) return;
-
-    if (!logs || logs.length === 0) {
-        logsList.innerHTML = '<p>Aucun log disponible.</p>';
-        return;
+        });
     }
 
-    const table = document.createElement('table');
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
-    table.style.marginTop = '10px';
-    table.style.fontSize = '0.9em';
-
-    table.innerHTML = `
-        <thead>
-            <tr style="background-color: #f0f0f0; text-align: left;">
-                <th style="padding: 10px; border: 1px solid #ddd;">Horodatage</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Action</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Détails</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${logs.reverse().map((log: any) => {
-        const details = { ...log };
-        delete details.timestamp;
-        delete details.action;
-        return `
-                <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${new Date(log.timestamp).toLocaleString()}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;"><strong>${log.action}</strong></td>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; font-size: 0.85em;">
-                        ${JSON.stringify(details).replace(/[\{\}\"]/g, '').replace(/,/g, ', ')}
-                    </td>
-                </tr>
-                `;
-    }).join('')}
-        </tbody>
-    `;
-
-    logsList.innerHTML = '';
-    logsList.appendChild(table);
+    if (closeBtn && logsModal) {
+        closeBtn.addEventListener('click', () => {
+            logsModal.style.display = 'none';
+        });
+    }
 }
