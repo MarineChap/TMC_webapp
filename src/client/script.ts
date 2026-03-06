@@ -68,14 +68,9 @@ async function displayServerIP() {
         const response = await fetch('/api/ip');
         if (response.ok) {
             const data = await response.json();
-            const footer = document.querySelector('footer');
-            if (footer) {
-                const ipInfo = document.createElement('p');
-                ipInfo.style.fontSize = '0.9em';
-                ipInfo.style.color = '#666';
-                ipInfo.style.marginTop = '5px';
-                ipInfo.innerHTML = `Connectez vous à cette adresse: <strong>http://${data.ip}:5173</strong>`;
-                footer.appendChild(ipInfo);
+            const footerText = document.getElementById('footer-text');
+            if (footerText) {
+                footerText.innerHTML += ` | Connectez-vous : <strong>http://${data.ip}:${data.port}</strong>`;
             }
         }
     } catch (error) {
