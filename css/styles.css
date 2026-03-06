@@ -836,7 +836,8 @@ main>section {
     height: 14vh;
     /* Increased height as requested */
     flex-shrink: 0;
-    border-top: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    overflow: hidden;
 }
 
 #sdmis-carousel {
@@ -866,8 +867,8 @@ main>section {
     transition: opacity 1s ease-in-out;
     display: flex;
     align-items: flex-end;
-    background-color: #000;
-    /* Background color for contained images */
+    background-color: transparent;
+    border-radius: var(--border-radius);
 }
 
 .sdmis-slide.active {
@@ -879,7 +880,7 @@ main>section {
     width: 100%;
     padding: 1.5vh 2vw;
     /* Reduced padding */
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
     color: white;
 }
 
@@ -889,7 +890,7 @@ main>section {
 }
 
 .sdmis-title {
-    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
     font-weight: 800;
     margin-bottom: 0.5rem;
     line-height: 1.1;
@@ -898,7 +899,7 @@ main>section {
 }
 
 .sdmis-excerpt {
-    font-size: clamp(1rem, 1.4vw, 1.2rem);
+    font-size: clamp(0.85rem, 1.1vw, 1rem);
     max-width: 800px;
     margin-bottom: 0.5rem;
     opacity: 0.9;
