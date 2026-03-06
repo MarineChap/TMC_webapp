@@ -243,11 +243,27 @@ function renderEvents(events: EventItem[]) {
         return;
     }
 
-    // Group events into chunks of 2
+    // Group events dynamically based on content length
     const pages: EventItem[][] = [];
-    for (let i = 0; i < events.length; i += 2) {
-        pages.push(events.slice(i, i + 2));
-    }
+    let currentPage: EventItem[] = [];
+    let pageWeight = 0;
+
+    events.forEach(event => {
+        const descLen = (event.description || '').length;
+        const hasImg = !!event.image;
+        // Weight: 2 for long events (>150 chars or image + >60 chars), 1 for short
+        const weight = (descLen > 150 || (hasImg && descLen > 60)) ? 2 : 1;
+
+        if (pageWeight + weight > 2 && currentPage.length > 0) {
+            pages.push(currentPage);
+            currentPage = [event];
+            pageWeight = weight;
+        } else {
+            currentPage.push(event);
+            pageWeight += weight;
+        }
+    });
+    if (currentPage.length > 0) pages.push(currentPage);
 
     console.log(`[Events] Total pages: ${pages.length}`, pages);
 
@@ -302,7 +318,7 @@ function renderEventCard(event: EventItem): string {
             ${hasText ? `
             <div style="flex-shrink: 0;">
                 ${title ? `<h3 style="font-size: clamp(1.2rem, 1.5vw, 1.7rem); margin-bottom: 0.2vh; font-weight: 700; color: white;">${title}</h3>` : ''}
-                ${description ? `<p style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0; line-height: 1.2; opacity: 0.9; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${description}</p>` : ''}
+                ${description ? `<p style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0; line-height: 1.2; opacity: 0.9; white-space: pre-wrap;">${description}</p>` : ''}
             </div>
             ` : ''}
         </div>
@@ -550,12 +566,6 @@ function initEditModal() {
         if (currentUser && currentUser.username) {
             if (category === 'chiefMessages' || category === 'amicalistMessages') {
                 formData['author'] = currentUser.username;
-            } else if (category === 'events' || category === 'flashNews') {
-                if (formData['description'] !== undefined) {
-                    formData['description'] += `\n\n - ${currentUser.username}`;
-                } else if (formData['text'] !== undefined) {
-                    formData['text'] += `\n\n - ${currentUser.username}`;
-                }
             }
         }
 
