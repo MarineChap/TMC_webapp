@@ -42,9 +42,11 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchWeather();
     checkInitialLogsRoute();
 
-    // Initialize SDMIS Carousel
     const sdmisCarousel = new SdmisNewsCarousel('sdmis-carousel');
     sdmisCarousel.init();
+
+    // Parse initial emojis (like the logo)
+    if ((window as any).twemoji) (window as any).twemoji.parse(document.body);
 });
 
 async function checkInitialLogsRoute() {
@@ -102,6 +104,7 @@ async function loadData() {
         initCarousel('amicalist-carousel');
         initCarousel('recruits-carousel');
 
+        if ((window as any).twemoji) (window as any).twemoji.parse(document.body);
     } catch (error) {
         console.error('Could not load data:', error);
     }
@@ -757,6 +760,7 @@ async function fetchWeather() {
         }
 
         container.innerHTML = html;
+        if ((window as any).twemoji) (window as any).twemoji.parse(container);
 
     } catch (error) {
         console.error('Error fetching weather:', error);
@@ -765,15 +769,15 @@ async function fetchWeather() {
 }
 
 function getWeatherIcon(code: number): string {
-    if (code === 0) return '<i class="fa-solid fa-sun" style="color: #ffb300;"></i>';
-    if (code >= 1 && code <= 3) return '<i class="fa-solid fa-cloud-sun"></i>';
-    if (code >= 45 && code <= 48) return '<i class="fa-solid fa-smog"></i>';
-    if (code >= 51 && code <= 67) return '<i class="fa-solid fa-cloud-showers-heavy"></i>';
-    if (code >= 71 && code <= 77) return '<i class="fa-solid fa-snowflake"></i>';
-    if (code >= 80 && code <= 82) return '<i class="fa-solid fa-cloud-rain"></i>';
-    if (code >= 85 && code <= 86) return '<i class="fa-solid fa-cloud-meatball"></i>';
-    if (code >= 95 && code <= 99) return '<i class="fa-solid fa-cloud-bolt"></i>';
-    return '<i class="fa-solid fa-question"></i>';
+    if (code === 0) return '☀️';
+    if (code >= 1 && code <= 3) return '⛅';
+    if (code >= 45 && code <= 48) return '🌫️';
+    if (code >= 51 && code <= 67) return '🌧️';
+    if (code >= 71 && code <= 77) return '❄️';
+    if (code >= 80 && code <= 82) return '🌦️';
+    if (code >= 85 && code <= 86) return '🌨️';
+    if (code >= 95 && code <= 99) return '⛈️';
+    return '❓';
 }
 
 function getWeatherDesc(code: number): string {
