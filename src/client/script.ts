@@ -159,7 +159,7 @@ function renderCarousel(containerId: string, messages: CarouselItem[], isRecruit
                             <img src="${msg.image}" alt="${msg.name}">
                             <div class="recruit-info">
                                 <div class="recruit-name">${msg.name}</div>
-                                <p>${msg.description || ''}</p>
+                                ${(msg.description || '').trim() ? `<p>${msg.description}</p>` : ''}
                             </div>
                         </div>
                     `).join('')}
@@ -178,20 +178,27 @@ function renderCarousel(containerId: string, messages: CarouselItem[], isRecruit
 
             let content = '';
             if (msg.image) {
-                content = `
-                    <div class="carousel-slide-content">
-                        <div class="carousel-text-content">
-                            <blockquote style="font-size: 1.5rem;">"${msg.text || msg.description || ''}"</blockquote>
-                            ${msg.author ? `<cite>- ${msg.author}</cite>` : (msg.title ? `<cite><strong>${msg.title}</strong></cite>` : '')}
+                const textContent = (msg.text || msg.description || '').trim();
+                if (textContent) {
+                    content = `
+                        <div class="carousel-slide-content">
+                            <div class="carousel-text-content">
+                                <blockquote style="font-size: 1.5rem;">"${textContent}"</blockquote>
+                                ${msg.title ? `<cite><strong>${msg.title}</strong></cite>` : ''}
+                            </div>
+                            <img src="${msg.image}" alt="Image" class="carousel-big-image">
                         </div>
-                        <img src="${msg.image}" alt="Image" class="carousel-big-image">
-                    </div>
-                `;
+                    `;
+                } else {
+                    content = `
+                        <div class="carousel-slide-content only-image">
+                            <img src="${msg.image}" alt="Image" class="carousel-big-image">
+                        </div>
+                    `;
+                }
             } else {
                 content += `<blockquote style="font-size: 1.5rem;">"${msg.text || msg.description || ''}"</blockquote>`;
-                if (msg.author) {
-                    content += `<cite>- ${msg.author}</cite>`;
-                } else if (msg.title) {
+                if (msg.title) {
                     content += `<cite><strong>${msg.title}</strong></cite>`;
                 }
             }
@@ -266,8 +273,6 @@ function renderEvents(events: EventItem[]) {
 }
 
 function renderEventCard(event: EventItem): string {
-    const hasImage = !!event.image;
-
     // Format date nicely: "Mer. 4 Mars - 14:30"
     let formattedDate = event.date;
     try {
@@ -286,14 +291,20 @@ function renderEventCard(event: EventItem): string {
         console.error("Error formatting date:", e);
     }
 
+    const title = (event.title || '').trim();
+    const description = (event.description || '').trim();
+    const hasText = title || description;
+
     return `
-        <div class="event-card" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+        <div class="event-card ${!hasText ? 'only-image' : ''}" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
             <div class="event-date">${formattedDate}</div>
             ${event.image ? `<img src="${event.image}" alt="${event.title}" style="flex: 1; width: 100%; min-height: 0; object-fit: contain; border-radius: 8px; margin-bottom: 0.3vh; background: rgba(0,0,0,0.2);">` : ''}
+            ${hasText ? `
             <div style="flex-shrink: 0;">
-                <h3 style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0.2vh; font-weight: 700; color: white;">${event.title}</h3>
-                <p style="font-size: clamp(0.75rem, 0.9vw, 1rem); margin-bottom: 0; line-height: 1.1; opacity: 0.9; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${event.description}</p>
+                ${title ? `<h3 style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0.2vh; font-weight: 700; color: white;">${title}</h3>` : ''}
+                ${description ? `<p style="font-size: clamp(0.75rem, 0.9vw, 1rem); margin-bottom: 0; line-height: 1.1; opacity: 0.9; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${description}</p>` : ''}
             </div>
+            ` : ''}
         </div>
     `;
 }

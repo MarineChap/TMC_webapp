@@ -265,6 +265,14 @@ section h2::after {
     border-radius: 12px;
 }
 
+.carousel-slide-content.only-image .carousel-big-image {
+    max-height: 100%;
+}
+
+.event-card.only-image img {
+    margin-bottom: 0 !important;
+}
+
 .carousel-slide blockquote {
     font-size: clamp(1.3rem, 3vw, 2.5rem);
     font-weight: 600;

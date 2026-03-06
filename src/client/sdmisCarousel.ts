@@ -123,8 +123,10 @@ export class SdmisNewsCarousel {
 
         let html = '<div class="sdmis-slides-container">';
         this.posts.forEach((post, index) => {
+            const hasContent = (post.title || '').trim() || (post.excerpt || '').trim();
             html += `
                 <div class="sdmis-slide ${index === this.currentIndex ? 'active' : ''}" style="background-image: url('${post.imageUrl}')">
+                    ${hasContent ? `
                     <div class="sdmis-overlay">
                         <div class="sdmis-content">
                             <h2 class="sdmis-title">${post.title}</h2>
@@ -132,6 +134,7 @@ export class SdmisNewsCarousel {
                             <a href="${post.link}" target="_blank" class="sdmis-link">Lire la suite</a>
                         </div>
                     </div>
+                    ` : ''}
                 </div>
             `;
         });
