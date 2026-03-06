@@ -155,13 +155,13 @@ function renderCarousel(containerId: string, messages: CarouselItem[], isRecruit
             slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
 
             slide.innerHTML = `
-                <div class="recruits-grid-mini" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 1vh; height: 100%; width: 100%;">
+                <div class="recruits-grid-mini">
                     ${chunk.map(msg => `
-                        <div class="recruit-card" style="height: 100%; display: flex; flex-direction: column; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                            <img src="${msg.image}" alt="${msg.name}" style="width: 100%; height: 11vh; object-fit: cover;">
-                            <div class="recruit-info" style="padding: 0.8vh; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                                <div class="recruit-name" style="font-size: clamp(1rem, 1.2vw, 1.3rem); font-weight: 700; color: var(--primary-red); line-height: 1.1; margin-bottom: 0.3vh;">${msg.name}</div>
-                                <p style="font-size: clamp(0.7rem, 0.9vw, 1rem); margin-top: 0; line-height: 1.1; opacity: 0.8;">${msg.description}</p>
+                        <div class="recruit-card-mini">
+                            <img src="${msg.image}" alt="${msg.name}">
+                            <div class="recruit-info">
+                                <div class="recruit-name">${msg.name}</div>
+                                <p>${msg.description || ''}</p>
                             </div>
                         </div>
                     `).join('')}
@@ -765,15 +765,15 @@ async function fetchWeather() {
 }
 
 function getWeatherIcon(code: number): string {
-    if (code === 0) return '☀️';
-    if (code >= 1 && code <= 3) return '⛅';
-    if (code >= 45 && code <= 48) return '🌫️';
-    if (code >= 51 && code <= 67) return '🌧️';
-    if (code >= 71 && code <= 77) return '❄️';
-    if (code >= 80 && code <= 82) return '🌦️';
-    if (code >= 85 && code <= 86) return '🌨️';
-    if (code >= 95 && code <= 99) return '⛈️';
-    return '❓';
+    if (code === 0) return '<i class="fa-solid fa-sun" style="color: #ffb300;"></i>';
+    if (code >= 1 && code <= 3) return '<i class="fa-solid fa-cloud-sun"></i>';
+    if (code >= 45 && code <= 48) return '<i class="fa-solid fa-smog"></i>';
+    if (code >= 51 && code <= 67) return '<i class="fa-solid fa-cloud-showers-heavy"></i>';
+    if (code >= 71 && code <= 77) return '<i class="fa-solid fa-snowflake"></i>';
+    if (code >= 80 && code <= 82) return '<i class="fa-solid fa-cloud-rain"></i>';
+    if (code >= 85 && code <= 86) return '<i class="fa-solid fa-cloud-meatball"></i>';
+    if (code >= 95 && code <= 99) return '<i class="fa-solid fa-cloud-bolt"></i>';
+    return '<i class="fa-solid fa-question"></i>';
 }
 
 function getWeatherDesc(code: number): string {

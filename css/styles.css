@@ -79,6 +79,8 @@ header {
 }
 
 header .logo {
+    font-size: 1.3rem;
+    /* Fallback */
     font-size: clamp(1.1rem, 2vw, 1.5rem);
     font-weight: 800;
     display: flex;
@@ -98,7 +100,12 @@ nav ul {
 
 /* Layout - Full Width & Fluid */
 .page-container {
+    display: -webkit-box;
+    display: -webkit-flex;
     display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: column;
     flex-direction: column;
     padding: 1.5vh 2vw;
     /* Reduced from 2vh */
@@ -116,6 +123,8 @@ nav ul {
     /* Reduced from 2vw */
     flex: 1;
     min-height: 0;
+    max-height: calc(86vh - 3vh);
+    /* 100vh - 14vh (SDMIS) - margins */
     overflow: hidden;
 }
 
@@ -151,6 +160,8 @@ section {
 
 section h2 {
     color: var(--primary-red);
+    font-size: 1.2rem;
+    /* Fallback */
     font-size: clamp(1rem, 1.5vw, 1.5rem);
     /* Slightly smaller */
     margin-bottom: 0.5vh;
@@ -429,7 +440,10 @@ section h2::after {
 }
 
 .event-date::before {
-    content: '📅';
+    content: '\f073';
+    /* fa-calendar-days */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
     font-size: 1.1em;
 }
 
@@ -468,8 +482,69 @@ section h2::after {
 .recruit-name {
     font-weight: 700;
     color: var(--primary-red);
-    font-size: 1.4rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+    margin-bottom: 0.3vh;
+}
+
+/* Recruits Grid Mini for Sidebar */
+.recruits-grid-mini {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(3, 1fr);
+    gap: 0.8vh;
+    height: 100%;
+    width: 100%;
+}
+
+.recruit-card-mini {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.recruit-card-mini img {
+    width: 100%;
+    height: 9vh;
+    /* Further reduced */
+    object-fit: cover;
+    border-radius: 0;
+}
+
+.recruit-card-mini .recruit-info {
+    padding: 0.3vh;
+    /* Reduced padding */
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+}
+
+.recruit-card-mini .recruit-name {
+    font-size: 1.1rem;
+    /* Fallback */
+    font-size: clamp(0.9rem, 1.1vw, 1.2rem);
+    font-weight: 700;
+    color: var(--primary-red);
+    line-height: 1;
+    /* Tighter line height */
+    margin-bottom: 0.1vh;
+}
+
+.recruit-card-mini p {
+    font-size: 0.8rem;
+    /* Fallback */
+    font-size: clamp(0.65rem, 0.8vw, 0.95rem);
+    margin-top: 0;
+    line-height: 1;
+    /* Tighter line height */
+    opacity: 0.8;
 }
 
 /* Flash News - Full Width Marquee */
