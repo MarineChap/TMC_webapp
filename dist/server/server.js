@@ -9,12 +9,14 @@ import { networkInterfaces } from 'os';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Robust root detection regardless of execution context (src/ vs dist/server/)
+const PROJECT_ROOT = path.resolve(__dirname, __dirname.includes(path.join('dist', 'server')) ? '../..' : '..');
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8001;
-const DB_FILE = path.join(__dirname, '../data/db.json');
-const LOG_FILE = path.join(__dirname, '../data/logs.json');
-const UPLOAD_DIR = path.join(__dirname, '../assets/images');
+const DB_FILE = path.join(PROJECT_ROOT, 'data/db.json');
+const LOG_FILE = path.join(PROJECT_ROOT, 'data/logs.json');
+const UPLOAD_DIR = path.join(PROJECT_ROOT, 'assets/images');
 // Supabase config
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -24,11 +26,11 @@ app.use(cors());
 app.use(express.json());
 // Ensure directories exist
 fs.mkdir(UPLOAD_DIR, { recursive: true }).catch(console.error);
-// Static file serving - Ensure the path is correct from dist/server.js
-app.use('/assets', express.static(path.join(__dirname, '../assets')));
-app.use('/css', express.static(path.join(__dirname, '../css')));
-app.use('/js', express.static(path.join(__dirname, '../js')));
-app.use('/data', express.static(path.join(__dirname, '../data')));
+// Static file serving
+app.use('/assets', express.static(path.join(PROJECT_ROOT, 'assets')));
+app.use('/css', express.static(path.join(PROJECT_ROOT, 'css')));
+app.use('/js', express.static(path.join(PROJECT_ROOT, 'js')));
+app.use('/data', express.static(path.join(PROJECT_ROOT, 'data')));
 // Upload configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -328,12 +330,12 @@ app.get('/api/ip', (req, res) => {
     res.json({ ip: ipAddr, port: PORT });
 });
 // 1. Servez d'abord les fichiers statiques du build de Vite
-app.use(express.static(path.join(__dirname, '../dist/client')));
+app.use(express.static(path.join(PROJECT_ROOT, 'dist/client')));
 // 2. Les routes API (déjà présentes dans votre code)
 // 3. Le fallback pour Single Page Application (React/Vue/etc.)
 app.use((req, res) => {
     // On cherche l'index.html à l'intérieur du dossier dist/client
-    res.sendFile(path.join(__dirname, '../dist/client/index.html'));
+    res.sendFile(path.join(PROJECT_ROOT, 'dist/client/index.html'));
 });
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on port ${PORT}`);
