@@ -91,25 +91,42 @@ async function addLog(action, metadata = {}) {
         console.error("Failed to add log:", e);
     }
 }
-// Background Task: Cleanup expired flashNews
+// Background Task: Cleanup expired flashNews and old events
 setInterval(async () => {
     try {
         const dbData = await loadDb();
+        const now = new Date();
+        let changed = false;
+        // Cleanup flashNews
         if (dbData.flashNews) {
-            const now = new Date();
             const originalCount = dbData.flashNews.length;
-            const activeNews = dbData.flashNews.filter((item) => {
+            dbData.flashNews = dbData.flashNews.filter((item) => {
                 if (item.endTime) {
                     const endTime = new Date(item.endTime);
                     return endTime.getTime() > now.getTime();
                 }
                 return true;
             });
-            if (activeNews.length !== originalCount) {
-                dbData.flashNews = activeNews;
-                await saveDb(dbData);
+            if (dbData.flashNews.length !== originalCount) {
+                changed = true;
                 console.log('Cleaned up expired flash news');
             }
+        }
+        // Cleanup events (remove if older than 1 day)
+        if (dbData.events) {
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const originalCount = dbData.events.length;
+            dbData.events = dbData.events.filter((event) => {
+                const eventDate = new Date(event.date);
+                return eventDate >= oneDayAgo;
+            });
+            if (dbData.events.length !== originalCount) {
+                changed = true;
+                console.log('Cleaned up old events');
+            }
+        }
+        if (changed) {
+            await saveDb(dbData);
         }
     }
     catch (e) {
@@ -225,6 +242,9 @@ app.post('/api/save', async (req, res) => {
             dbData[category] = [];
         }
         dbData[category].push(item);
+        if (category === 'events') {
+            dbData.events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        }
         await saveDb(dbData);
         if (['chiefMessages', 'amicalistMessages'].includes(category)) {
             addLog('message_created', { category, author: item.author, text: item.text?.substring(0, 50) });

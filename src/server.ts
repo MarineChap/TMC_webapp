@@ -102,14 +102,17 @@ async function addLog(action: string, metadata: any = {}) {
     }
 }
 
-// Background Task: Cleanup expired flashNews
+// Background Task: Cleanup expired flashNews and old events
 setInterval(async () => {
     try {
         const dbData = await loadDb();
+        const now = new Date();
+        let changed = false;
+
+        // Cleanup flashNews
         if (dbData.flashNews) {
-            const now = new Date();
             const originalCount = dbData.flashNews.length;
-            const activeNews = dbData.flashNews.filter((item: any) => {
+            dbData.flashNews = dbData.flashNews.filter((item: any) => {
                 if (item.endTime) {
                     const endTime = new Date(item.endTime);
                     return endTime.getTime() > now.getTime();
@@ -117,11 +120,29 @@ setInterval(async () => {
                 return true;
             });
 
-            if (activeNews.length !== originalCount) {
-                dbData.flashNews = activeNews;
-                await saveDb(dbData);
+            if (dbData.flashNews.length !== originalCount) {
+                changed = true;
                 console.log('Cleaned up expired flash news');
             }
+        }
+
+        // Cleanup events (remove if older than 1 day)
+        if (dbData.events) {
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const originalCount = dbData.events.length;
+            dbData.events = dbData.events.filter((event: any) => {
+                const eventDate = new Date(event.date);
+                return eventDate >= oneDayAgo;
+            });
+
+            if (dbData.events.length !== originalCount) {
+                changed = true;
+                console.log('Cleaned up old events');
+            }
+        }
+
+        if (changed) {
+            await saveDb(dbData);
         }
     } catch (e) {
         console.error("Cleanup error:", e);
@@ -247,6 +268,11 @@ app.post('/api/save', async (req, res) => {
         }
 
         dbData[category].push(item);
+
+        if (category === 'events') {
+            dbData.events.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        }
+
         await saveDb(dbData);
 
         if (['chiefMessages', 'amicalistMessages'].includes(category)) {

@@ -183,7 +183,7 @@ function renderCarousel(containerId: string, messages: CarouselItem[], isRecruit
                     content = `
                         <div class="carousel-slide-content">
                             <div class="carousel-text-content">
-                                <blockquote style="font-size: 1.5rem;">"${textContent}"</blockquote>
+                                <blockquote style="font-size: 1.5rem;">${textContent}</blockquote>
                                 ${msg.title ? `<cite><strong>${msg.title}</strong></cite>` : ''}
                             </div>
                             <img src="${msg.image}" alt="Image" class="carousel-big-image">
@@ -301,8 +301,8 @@ function renderEventCard(event: EventItem): string {
             ${event.image ? `<img src="${event.image}" alt="${event.title}" style="flex: 1; width: 100%; min-height: 0; object-fit: contain; border-radius: 8px; margin-bottom: 0.3vh; background: rgba(0,0,0,0.2);">` : ''}
             ${hasText ? `
             <div style="flex-shrink: 0;">
-                ${title ? `<h3 style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0.2vh; font-weight: 700; color: white;">${title}</h3>` : ''}
-                ${description ? `<p style="font-size: clamp(0.75rem, 0.9vw, 1rem); margin-bottom: 0; line-height: 1.1; opacity: 0.9; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${description}</p>` : ''}
+                ${title ? `<h3 style="font-size: clamp(1.2rem, 1.5vw, 1.7rem); margin-bottom: 0.2vh; font-weight: 700; color: white;">${title}</h3>` : ''}
+                ${description ? `<p style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0; line-height: 1.2; opacity: 0.9; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${description}</p>` : ''}
             </div>
             ` : ''}
         </div>
