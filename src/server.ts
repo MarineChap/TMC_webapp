@@ -352,11 +352,16 @@ app.get('/api/ip', (req, res) => {
     res.json({ ip: ipAddr, port: PORT });
 });
 
-// Fallback for SPA
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, '../index.html'));
-});
+// 1. Servez d'abord les fichiers statiques du build de Vite
+app.use(express.static(path.join(__dirname, '../dist/client')));
 
+// 2. Les routes API (déjà présentes dans votre code)
+
+// 3. Le fallback pour Single Page Application (React/Vue/etc.)
+app.use((req, res) => {
+    // On cherche l'index.html à l'intérieur du dossier dist/client
+    res.sendFile(path.join(__dirname, '../dist/client/index.html'));
+});
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on port ${PORT}`);
 });
