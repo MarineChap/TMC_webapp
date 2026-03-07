@@ -110,57 +110,90 @@ nav ul {
 
 /* Layout - Full Width & Fluid */
 .page-container {
-    display: -webkit-box;
-    display: -webkit-flex;
     display: flex;
-    -webkit-box-orient: vertical;
-    -webkit-box-direction: normal;
-    -webkit-flex-direction: column;
     flex-direction: column;
-    padding: 1.5vh 2vw;
-    /* Reduced from 2vh */
+    padding: 2vh 2vw;
     flex: 1;
-    width: 100%;
+    width: 100vw;
+    height: calc(100vh - 80px);
+    /* header height */
     overflow: hidden;
     min-height: 0;
 }
 
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
-    grid-template-rows: 1fr;
-    gap: 1.5vw;
-    /* Reduced from 2vw */
-    flex: 1;
-    min-height: 0;
-    max-height: calc(86vh - 3vh);
-    /* 100vh - 14vh (SDMIS) - margins */
-    overflow: hidden;
-}
-
-.main-content {
+.main-layout {
     display: flex;
-    flex-direction: column;
-    gap: 1.5vh;
-    /* Reduced from 2vh */
-    min-height: 0;
-    overflow: hidden;
-}
-
-.sidebar,
-.recruits-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 1vh;
-    overflow: hidden;
+    gap: 2vw;
     height: 100%;
+    width: 100%;
 }
 
-.recruits-sidebar #recruits {
-    flex: 1.1;
+.left-column {
+    flex: 9;
+    /* Approximately 90% of main content width */
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    gap: 2vh;
+    height: 100%;
+    min-width: 0;
+}
+
+.side-column {
+    flex: 1;
+    /* Approximately 10% of main content width */
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    height: 100%;
+    min-width: 150px;
+}
+
+/* Sections split */
+.main-carousel-container {
+    height: 65vh;
+    /* Approximately 2/3 */
+    flex: none;
+}
+
+.horizontal-events-section {
+    height: 25vh;
+    /* Approximately 1/3 */
+    flex: none;
+    background: var(--primary-red);
+    color: var(--text-light);
+    border-radius: var(--border-radius);
+    padding: 1vh 0.5vw;
+    /* Reduced side padding slightly */
+    box-shadow: 0 15px 40px var(--primary-red-glow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+
+.side-column {
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+}
+
+.station-logo-container {
+    height: 25vh;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    padding: 2vh;
+    box-shadow: var(--card-shadow);
+}
+
+.station-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 
 /* Sections - No Max Width */
@@ -211,18 +244,30 @@ section h2::after {
     overflow: hidden;
 }
 
-.carousel-section h2 {
-    justify-content: center;
-    text-align: center;
+.carousel-section-title {
+    font-size: clamp(1.2rem, 1.8vw, 2rem);
+    color: var(--primary-red);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 800;
+    flex-shrink: 0;
+    text-align: left;
+    padding: 0.5vh 0 0.2vh 0;
 }
 
-.carousel-section h2::after {
-    display: none;
+.carousel-section-title::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 4px;
+    background: var(--accent-gold);
+    margin-top: 5px;
 }
 
 .carousel-container {
     width: 100%;
-    max-width: 1000px;
+    max-width: 100%;
+    /* Changed from 1000px to 100% */
     margin: 0 auto;
     flex: 1;
     display: flex;
@@ -230,6 +275,7 @@ section h2::after {
     min-height: 0;
     overflow: hidden;
 }
+
 
 .carousel-slide {
     display: none;
@@ -239,17 +285,20 @@ section h2::after {
 .carousel-slide.active {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     height: 100%;
+    min-height: 0;
 }
 
 .carousel-slide-content {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
     width: 100%;
-    gap: 1vh;
+    gap: 2vh;
     min-height: 0;
+    align-items: center;
+    justify-content: center;
 }
 
 .carousel-text-content {
@@ -257,11 +306,10 @@ section h2::after {
 }
 
 .carousel-big-image {
-    flex: 1;
     width: 100%;
-    height: 100%;
-    max-height: calc(100% - 120px);
-    /* Space for text */
+    height: auto;
+    max-height: calc(65vh - 160px);
+    /* Leave more space for text/titles */
     object-fit: contain;
     border-radius: 12px;
 }
@@ -272,6 +320,29 @@ section h2::after {
 
 .event-card.only-image img {
     margin-bottom: 0 !important;
+}
+
+.carousel-slide-content.with-gallery {
+    flex-direction: column;
+}
+
+.image-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5vh;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1.5vh;
+}
+
+.gallery-image {
+    max-width: 45%;
+    max-height: 25vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .carousel-slide blockquote {
@@ -342,6 +413,26 @@ section h2::after {
     box-shadow: var(--card-shadow);
 }
 
+.alerts-widget {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    padding: 1vh 1vw;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5vh;
+}
+
 .weather-widget h2 {
     font-size: clamp(0.9rem, 1.1vw, 1.1rem);
     text-align: left;
@@ -396,6 +487,47 @@ section h2::after {
     opacity: 0.8;
 }
 
+
+
+.weather-alert-item {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-weight: 700;
+    text-align: center;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.weather-alert-yellow {
+    background-color: #fbc02d;
+    color: #4a3c00;
+}
+
+.weather-alert-orange {
+    background-color: #ef6c00;
+}
+
+.weather-alert-red {
+    background-color: #c62828;
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
 .sidebar .future-event {
     background: var(--primary-red);
     color: var(--text-light);
@@ -413,51 +545,106 @@ section h2::after {
     /* Ensure it stays within sidebar */
 }
 
-#events-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.8vh;
-    position: relative;
-    overflow: hidden;
-    /* Remove scrollbar */
-}
+/* #events-container is now handled by .events-row below */
 
 /* Remove custom scrollbar styles as they are no longer needed */
 
-.future-event h2 {
+.horizontal-events-section h2 {
     color: var(--text-light) !important;
-    justify-content: center;
-    font-size: clamp(1.4rem, 1.8vw, 2.2rem);
+    font-size: clamp(1.4rem, 2vw, 2.5rem);
     margin-bottom: 1vh;
+    flex-shrink: 0;
 }
 
-.future-event h2::after {
+.event-indicators-container {
+    position: relative;
+    padding-bottom: 40px !important;
+    /* Space for indicators at the bottom */
+}
+
+.event-indicators .indicator {
+    background: rgba(255, 255, 255, 0.4);
+    width: 14px;
+    height: 14px;
+}
+
+.event-indicators .indicator.active {
+    background: var(--accent-gold);
+    transform: scale(1.2);
+    box-shadow: 0 0 15px var(--accent-gold-glow);
+}
+
+.events-row {
     display: none;
+    /* Hide old row logic, we use slides now */
+}
+
+/* Ensure slides in events area use the full space */
+#events-carousel .carousel-slide.active {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5vw;
+    justify-content: flex-start;
+    align-items: stretch;
+    height: 100%;
+    width: 100%;
 }
 
 .event-card {
+    flex: 0 0 24%;
+    /* Adjusted to better fit 4 cards with gaps */
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 1vh !important;
-    border-radius: 15px;
-    transition: transform 0.3s;
-    backdrop-filter: blur(5px);
+    padding: 1vh 0.8vw !important;
+    /* Reduced padding to fit vertically */
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 200px;
+    /* Reduced min-width */
+    backdrop-filter: blur(10px);
 }
 
-.event-card:hover {
-    transform: scale(1.02);
-    background: rgba(255, 255, 255, 0.18);
+
+.event-title {
+    font-size: clamp(1rem, 1.4vw, 1.6rem);
+    color: white;
+    margin-bottom: 0.2vh;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.event-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2vh;
+    min-height: 0;
+    justify-content: flex-start;
+    /* Center text vertically since no image */
+}
+
+.event-desc {
+    font-size: clamp(0.9rem, 1.1vw, 1.2rem);
+    /* Slightly larger font for text-only */
+    line-height: 1.25;
+    opacity: 0.9;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
 }
 
 .event-date {
     color: var(--accent-gold);
-    font-size: clamp(1.1rem, 1.4vw, 1.5rem);
+    font-size: clamp(0.95rem, 1.2vw, 1.3rem);
     font-weight: 800;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 0.5vh;
+    gap: 6px;
+    margin-bottom: 0.2vh;
     text-transform: capitalize;
 }
 
@@ -508,18 +695,18 @@ section h2::after {
     margin-bottom: 0.3vh;
 }
 
-/* Recruits Grid Mini for Sidebar */
-.recruits-grid-mini {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: repeat(3, 1fr);
-    gap: 0.8vh;
+/* Recruits Row - 3 cards side by side */
+.recruits-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5vw;
     height: 100%;
     width: 100%;
+    align-items: stretch;
 }
 
 .recruit-card-mini {
-    height: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
     background: var(--glass-bg);
@@ -531,42 +718,38 @@ section h2::after {
 
 .recruit-card-mini img {
     width: 100%;
-    height: 9vh;
-    /* Further reduced */
-    object-fit: cover;
+    flex: 1;
+    min-height: 0;
+    object-fit: contain;
+    /* Always show the full image, adapt to portrait or landscape */
+    background: rgba(0, 0, 0, 0.15);
+    /* Neutral bg to fill letterbox areas */
     border-radius: 0;
 }
 
 .recruit-card-mini .recruit-info {
-    padding: 0.3vh;
-    /* Reduced padding */
+    padding: 0.8vh 0.8vw;
     text-align: center;
-    flex: 1;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 0;
+    gap: 0.3vh;
 }
 
 .recruit-card-mini .recruit-name {
-    font-size: 1.3rem;
-    /* Fallback */
-    font-size: clamp(1.1rem, 1.3vw, 1.5rem);
+    font-size: clamp(1.4rem, 1.8vw, 2.2rem);
     font-weight: 700;
     color: var(--primary-red);
-    line-height: 1;
-    /* Tighter line height */
-    margin-bottom: 0.1vh;
+    line-height: 1.2;
+    margin-bottom: 0.2vh;
 }
 
 .recruit-card-mini p {
-    font-size: 0.8rem;
-    /* Fallback */
-    font-size: clamp(0.65rem, 0.8vw, 0.95rem);
+    font-size: clamp(1rem, 1.2vw, 1.5rem);
     margin-top: 0;
-    line-height: 1;
-    /* Tighter line height */
-    opacity: 0.8;
+    line-height: 1.3;
+    opacity: 0.85;
 }
 
 /* Flash News - Full Width Marquee */
@@ -826,6 +1009,24 @@ main>section {
     .recruits-grid {
         grid-template-columns: repeat(4, 1fr);
     }
+
+    /* Flash News override for TV */
+    body.flash-active header {
+        display: none !important;
+    }
+
+    body.flash-active .flash-news-container {
+        position: relative;
+        width: 100vw;
+        border-radius: 0;
+        padding: 2rem 4rem;
+        font-size: 3rem;
+        z-index: 1001;
+        box-shadow: 0 15px 40px rgba(183, 28, 28, 0.4);
+        border: none;
+        border-bottom: 4px solid var(--accent-gold);
+        background: linear-gradient(90deg, #d32f2f, var(--primary-red), #d32f2f);
+    }
 }
 
 /* SDMIS News Carousel Styles */
@@ -994,5 +1195,139 @@ main>section {
 
     .sdmis-excerpt {
         display: none;
+    }
+}
+
+/* Traffic Slide */
+.traffic-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    /* Force height to 100% of parent */
+    align-items: stretch;
+}
+
+#traffic-map {
+    flex: 1;
+    border-radius: 12px;
+    border: 2px solid var(--glass-border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    /* Instead of min-height */
+    width: 100%;
+    z-index: 1;
+}
+
+/* Traffic alerts now in sidebar */
+.traffic-alert-card {
+    background: rgba(255, 255, 255, 0.4);
+    padding: 0.5vh 0.8vw;
+    border-radius: 6px;
+    border-left: 4px solid var(--primary-red);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0.5vh;
+}
+
+.traffic-alert-card h4 {
+    margin-bottom: 0.2vh;
+    font-size: 0.85rem;
+    color: var(--primary-red);
+    font-weight: 700;
+}
+
+.traffic-alert-card p {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--text-dark);
+    margin: 0;
+    opacity: 0.9;
+}
+
+.traffic-no-alerts {
+    text-align: center;
+    color: var(--text-dark);
+    opacity: 0.7;
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 1vh 0;
+}
+
+/* Mobile Layout - Column View */
+@media (max-width: 1024px) {
+
+    html,
+    body {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+
+    .page-container {
+        height: auto;
+        overflow-y: visible;
+    }
+
+    .main-layout {
+        flex-direction: column;
+    }
+
+    .left-column,
+    .side-column {
+        width: 100%;
+        flex: none;
+        height: auto;
+    }
+
+    .main-carousel-container {
+        height: 60vh;
+    }
+
+    .horizontal-events-section {
+        height: auto;
+        min-height: 30vh;
+    }
+
+    .station-logo-container {
+        height: auto;
+        padding: 4vh;
+    }
+}
+
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    #events-carousel .carousel-slide.active {
+        flex-direction: column;
+    }
+
+    .event-card {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    .main-carousel-container {
+        height: 50vh;
+    }
+
+    .recruits-row {
+        flex-direction: column;
+    }
+
+    .recruit-card-mini {
+        width: 100%;
+        flex: 0 0 auto;
+        height: auto;
+    }
+
+    .carousel-slide-content.only-image .carousel-big-image {
+        max-height: 40vh;
     }
 }

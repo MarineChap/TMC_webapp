@@ -25,6 +25,7 @@ const UPLOAD_DIR = path.join(PROJECT_ROOT, 'assets/images');
 // Supabase config
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const TOMTOM_API_KEY = process.env.TOMTOM_API_KEY;
 const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 // Middleware
@@ -305,13 +306,15 @@ app.post('/api/delete', async (req, res) => {
 
         dbData[category].splice(itemIndex, 1);
 
-        const imgPath = item.image;
-        if (imgPath) {
-            const normPath = path.join(__dirname, '..', imgPath);
-            try {
-                await fs.unlink(normPath);
-            } catch (e) {
-                // Ignore if file doesn't exist
+        const images = item.images || (item.image ? [item.image] : []);
+        if (images.length > 0) {
+            for (const imgPath of images) {
+                const normPath = path.join(PROJECT_ROOT, imgPath);
+                try {
+                    await fs.unlink(normPath);
+                } catch (e) {
+                    // Ignore if file doesn't exist
+                }
             }
         }
 
@@ -329,9 +332,13 @@ app.post('/api/delete', async (req, res) => {
     }
 });
 
-app.post('/api/upload', upload.single('file'), (req, res) => {
-    if (!req.file) return res.status(400).json({ detail: "No file uploaded" });
-    res.json({ path: `assets/images/${req.file.originalname}` });
+app.post('/api/upload', upload.array('files', 10), (req, res) => {
+    if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+        return res.status(400).json({ detail: "No files uploaded" });
+    }
+    const files = req.files as Express.Multer.File[];
+    const paths = files.map(file => `assets/images/${file.originalname}`);
+    res.json({ paths });
 });
 
 app.get('/api/logs', async (req: Request, res: Response) => {
@@ -368,6 +375,80 @@ app.get('/api/sdmis-rss', async (req, res) => {
         res.send(data);
     } catch (e: any) {
         res.status(500).json({ detail: e.message || String(e) });
+    }
+});
+
+app.get('/api/weather-alerts', async (req, res) => {
+    try {
+        // Use open-meteo hourly forecast to derive severe weather alerts
+        // If weather code is severe (thunderstorm, blizzard, heavy snow, heavy rain), emit alert
+        const lat = 45.641;
+        const lon = 4.722;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=weathercode&forecast_days=1&timezone=auto`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('open-meteo failed');
+        const data = await response.json();
+
+        const codes: number[] = data.hourly?.weathercode || [];
+        const now = new Date();
+        const currentHour = now.getHours();
+
+        // Look at current + next 6 hours
+        const upcomingCodes = codes.slice(currentHour, currentHour + 6);
+
+        // Determine worst weather in next 6h
+        const hasThunderstorm = upcomingCodes.some((c: number) => c >= 95);
+        const hasHeavyRain = upcomingCodes.some((c: number) => (c >= 65 && c <= 67) || (c >= 80 && c <= 82));
+        const hasSnow = upcomingCodes.some((c: number) => c >= 71 && c <= 77);
+        const hasFog = upcomingCodes.some((c: number) => c >= 45 && c <= 48);
+
+        const alerts: { level: string; label: string }[] = [];
+        if (hasThunderstorm) alerts.push({ level: 'orange', label: 'Orages prévus' });
+        else if (hasHeavyRain) alerts.push({ level: 'yellow', label: 'Pluies importantes' });
+        if (hasSnow) alerts.push({ level: 'orange', label: 'Neige / Verglas' });
+        if (hasFog) alerts.push({ level: 'yellow', label: 'Brouillard' });
+
+        res.json({ alerts });
+    } catch (e: any) {
+        console.error('Weather Alerts Error:', e.message);
+        res.status(500).json({ detail: e.message || String(e) });
+    }
+});
+
+
+app.get('/api/traffic-incidents', async (req, res) => {
+    try {
+        if (!process.env.TOMTOM_API_KEY) {
+            throw new Error('TomTom API Key missing');
+        }
+
+        const bbox = '4.581,45.491,5.013,45.797';
+
+        // 1. Correction de la structure des champs
+        // Note: On utilise souvent "incidents" à la racine pour la v5
+        const fields = '{incidents{properties{iconCategory,events{description}}}}';
+
+        // 2. Utilisation de URLSearchParams pour un encodage propre
+        const params = new URLSearchParams({
+            key: process.env.TOMTOM_API_KEY,
+            bbox: bbox,
+            fields: fields,
+            language: 'fr-FR'
+        });
+
+        const url = `https://api.tomtom.com/traffic/services/5/incidentDetails?${params.toString()}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            const errBody = await response.text();
+            return res.status(response.status).json({ error: errBody });
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (e: any) {
+        res.status(500).json({ detail: e.message });
     }
 });
 

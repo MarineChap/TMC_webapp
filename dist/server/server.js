@@ -271,14 +271,16 @@ app.post('/api/delete', async (req, res) => {
             return res.status(404).json({ detail: "Item not found" });
         }
         dbData[category].splice(itemIndex, 1);
-        const imgPath = item.image;
-        if (imgPath) {
-            const normPath = path.join(__dirname, '..', imgPath);
-            try {
-                await fs.unlink(normPath);
-            }
-            catch (e) {
-                // Ignore if file doesn't exist
+        const images = item.images || (item.image ? [item.image] : []);
+        if (images.length > 0) {
+            for (const imgPath of images) {
+                const normPath = path.join(PROJECT_ROOT, imgPath);
+                try {
+                    await fs.unlink(normPath);
+                }
+                catch (e) {
+                    // Ignore if file doesn't exist
+                }
             }
         }
         await saveDb(dbData);
@@ -294,10 +296,13 @@ app.post('/api/delete', async (req, res) => {
         res.status(500).json({ detail: e.message || String(e) });
     }
 });
-app.post('/api/upload', upload.single('file'), (req, res) => {
-    if (!req.file)
-        return res.status(400).json({ detail: "No file uploaded" });
-    res.json({ path: `assets/images/${req.file.originalname}` });
+app.post('/api/upload', upload.array('files', 10), (req, res) => {
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ detail: "No files uploaded" });
+    }
+    const files = req.files;
+    const paths = files.map(file => `assets/images/${file.originalname}`);
+    res.json({ paths });
 });
 app.get('/api/logs', async (req, res) => {
     const authHeader = req.headers.authorization;

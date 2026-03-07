@@ -2,6 +2,7 @@ import { SdmisNewsCarousel } from './sdmisCarousel';
 
 let currentUser: any = null;
 let isUserValidated = false;
+let trafficMapInstance: any = null;
 
 interface CarouselItem {
     text?: string;
@@ -9,6 +10,7 @@ interface CarouselItem {
     author?: string;
     title?: string;
     image?: string;
+    images?: string[];
     name?: string;
 }
 
@@ -40,6 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
     startAutoReload();
     displayServerIP();
     fetchWeather();
+    fetchWeatherAlerts();
+    fetchTrafficIncidents();
     checkInitialLogsRoute();
 
     const sdmisCarousel = new SdmisNewsCarousel('sdmis-carousel');
@@ -86,18 +90,14 @@ async function loadData() {
         }
         const data: DbData = await response.json();
 
-        renderCarousel('chief-carousel', data.chiefMessages);
-        renderCarousel('amicalist-carousel', data.amicalistMessages);
-        renderCarousel('recruits-carousel', data.recruits, true); // True for recruits specific rendering
+        renderMainCarousel(data);
         renderEvents(data.events);
 
         currentFlashNews = data.flashNews || [];
         renderFlashNews(currentFlashNews);
 
         // Initialize carousel logic after rendering
-        initCarousel('chief-carousel');
-        initCarousel('amicalist-carousel');
-        initCarousel('recruits-carousel');
+        initCarousel('main-carousel');
 
         if ((window as any).twemoji) (window as any).twemoji.parse(document.body);
     } catch (error) {
@@ -130,30 +130,51 @@ function startAutoReload() {
     }, 2000); // Check every 2 seconds
 }
 
-function renderCarousel(containerId: string, messages: CarouselItem[], isRecruit: boolean = false) {
-    const container = document.getElementById(containerId);
+function renderMainCarousel(data: DbData) {
+    const container = document.getElementById('main-carousel');
     if (!container) return;
 
-    // Clear existing slides except nav
+    // Clear existing slides except indicators
     const existingSlides = container.querySelectorAll('.carousel-slide');
     existingSlides.forEach(slide => slide.remove());
 
     const indicators = container.querySelector('.carousel-indicators');
 
-    if (isRecruit) {
-        // Group recruits into chunks of 6 for the TV display
-        const chunkSize = 6;
-        const chunks: CarouselItem[][] = [];
-        for (let i = 0; i < messages.length; i += chunkSize) {
-            chunks.push(messages.slice(i, i + chunkSize));
-        }
+    const slides: { title: string, content: string, type?: string }[] = [];
 
-        chunks.forEach((chunk, index) => {
-            const slide = document.createElement('div');
-            slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
+    // Add Chief Messages
+    data.chiefMessages.forEach(msg => {
+        const hasImage = !!(msg.image || (msg.images && msg.images.length > 0));
+        slides.push({
+            title: "Messages Encadrement",
+            content: renderStandardSlide(msg),
+            type: hasImage ? 'message-image' : 'message'
+        });
+    });
 
-            slide.innerHTML = `
-                <div class="recruits-grid-mini">
+    // Add Amicalist Messages
+    data.amicalistMessages.forEach(msg => {
+        const hasImage = !!(msg.image || (msg.images && msg.images.length > 0));
+        slides.push({
+            title: "Messages Amicale",
+            content: renderStandardSlide(msg),
+            type: hasImage ? 'message-image' : 'message'
+        });
+    });
+
+    const isMobile = window.innerWidth <= 768;
+    const recruitChunkSize = isMobile ? 1 : 3;
+    // Add Recruits (chunks of 3)
+    const recruitChunks: CarouselItem[][] = [];
+    for (let i = 0; i < data.recruits.length; i += recruitChunkSize) {
+        recruitChunks.push(data.recruits.slice(i, i + recruitChunkSize));
+    }
+
+    recruitChunks.forEach(chunk => {
+        slides.push({
+            title: "Nouveaux Engagés",
+            content: `
+                <div class="recruits-row">
                     ${chunk.map(msg => `
                         <div class="recruit-card-mini">
                             <img src="${msg.image}" alt="${msg.name}">
@@ -164,132 +185,247 @@ function renderCarousel(containerId: string, messages: CarouselItem[], isRecruit
                         </div>
                     `).join('')}
                 </div>
-            `;
-            if (indicators) {
-                container.insertBefore(slide, indicators);
-            } else {
-                container.appendChild(slide);
-            }
+            `,
+            type: 'recruits'
         });
-    } else {
-        messages.forEach((msg: CarouselItem, index: number) => {
-            const slide = document.createElement('div');
-            slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
+    });
 
-            let content = '';
-            if (msg.image) {
-                const textContent = (msg.text || msg.description || '').trim();
-                if (textContent) {
-                    content = `
-                        <div class="carousel-slide-content">
-                            <div class="carousel-text-content">
-                                <blockquote style="font-size: 1.5rem;">${textContent}</blockquote>
-                                ${msg.title ? `<cite><strong>${msg.title}</strong></cite>` : ''}
-                            </div>
-                            <img src="${msg.image}" alt="Image" class="carousel-big-image">
-                        </div>
-                    `;
-                } else {
-                    content = `
-                        <div class="carousel-slide-content only-image">
-                            <img src="${msg.image}" alt="Image" class="carousel-big-image">
-                        </div>
-                    `;
-                }
-            } else {
-                content += `<blockquote style="font-size: 1.5rem;">"${msg.text || msg.description || ''}"</blockquote>`;
-                if (msg.title) {
-                    content += `<cite><strong>${msg.title}</strong></cite>`;
-                }
-            }
+    // Add Traffic Page
+    slides.push({
+        title: "Trafic & Circulation",
+        content: `
+            <div class="carousel-slide-content">
+                <div class="traffic-container" style="height: 100%; width: 100%;">
+                    <div id="traffic-map" style="width: 100%; height: 100%; border-radius: 12px; overflow: hidden;"></div>
+                </div>
+            </div>
+        `,
+        type: 'traffic'
+    });
 
-            slide.innerHTML = content;
-            if (indicators) {
-                container.insertBefore(slide, indicators);
-            } else {
-                container.appendChild(slide);
-            }
-        });
+    slides.forEach((slideData, index) => {
+        const slide = document.createElement('div');
+        slide.className = `carousel-slide ${index === 0 ? 'active' : ''}`;
+        if (slideData.type) slide.dataset.slideType = slideData.type;
+        slide.innerHTML = `
+            <h2 class="carousel-section-title">${slideData.title}</h2>
+            ${slideData.content}
+        `;
+        if (indicators) {
+            container.insertBefore(slide, indicators);
+        } else {
+            container.appendChild(slide);
+        }
+    });
+
+    // Traffic map is initialized lazily when the slide becomes visible (see initCarousel/showSlide)
+    // so we don't call initTrafficMap() here to avoid zero-size initialization
+}
+
+function initTrafficMap() {
+    const L = (window as any).L;
+    if (!L) return;
+
+    const trafficMapContainer = document.getElementById('traffic-map');
+    if (!trafficMapContainer) return;
+
+    // If already initialized, just return
+    if (trafficMapInstance) return;
+
+    const lat = 45.644;
+    const lon = 4.797;
+
+    trafficMapInstance = L.map('traffic-map').setView([lat, lon], 11);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(trafficMapInstance);
+
+    // Add TomTom Traffic Flow Layer
+    const tomtomKey = 'sd4npPH6dTyPskdvxFQG0pVgnhBXrJAX';
+    L.tileLayer(`https://{s}.api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${tomtomKey}`, {
+        subdomains: 'abcd',
+        tileSize: 256,
+        zoomOffset: 0,
+        opacity: 0.7
+    }).addTo(trafficMapInstance);
+
+    fetchTrafficIncidents();
+}
+
+async function fetchTrafficIncidents() {
+    const container = document.getElementById('traffic-alerts');
+    if (!container) return;
+
+    try {
+        const response = await fetch('/api/traffic-incidents');
+        if (!response.ok) throw new Error('Traffic incidents failed');
+        const data = await response.json();
+
+        // TomTom v5 returns GeoJSON FeatureCollection
+        const features = data.features || [];
+
+        // Filter to only show incidents with significant categories
+        // iconCategory: 0=Unknown,1=Accident,2=Fog,3=Dangerous conditions,4=Rain,
+        // 5=Ice,6=Jam,7=Lane closed,8=Road closed,9=Road works,10=Wind,11=Flooding,14=Broken down vehicle
+        const categoryLabels: Record<number, string> = {
+            1: 'Accident',
+            2: 'Brouillard',
+            3: 'Conditions dangereuses',
+            4: 'Pluie intense',
+            5: 'Verglas',
+            6: 'Embouteillage',
+            7: 'Voie fermée',
+            8: 'Route fermée',
+            9: 'Travaux',
+            10: 'Vent fort',
+            11: 'Inondation',
+            14: 'Véhicule en panne'
+        };
+
+        if (features.length > 0) {
+            // Deduplicate by category, and show max 5 items
+            const seenCategories = new Set<number>();
+            const uniqueFeatures = features.filter((f: any) => {
+                const cat = f.properties?.iconCategory;
+                if (!seenCategories.has(cat)) {
+                    seenCategories.add(cat);
+                    return true;
+                }
+                return false;
+            }).slice(0, 5);
+
+            container.innerHTML = uniqueFeatures.map((f: any) => {
+                const cat = f.properties?.iconCategory;
+                const label = categoryLabels[cat] || `Incident (cat. ${cat})`;
+
+                // Extract description (usually contains the road name and direction)
+                const events = f.properties?.events || [];
+                const description = events.length > 0 && events[0].description
+                    ? events[0].description
+                    : 'Localisation non précisée';
+
+                return `<div class="traffic-alert-card">
+                            <h4>${label}</h4>
+                            <p>${description}</p>
+                        </div>`;
+            }).join('');
+            container.style.display = 'flex';
+        } else {
+            container.innerHTML = '<div class="traffic-no-alerts">Aucune alerte trafic.</div>';
+        }
+
+    } catch (error) {
+        console.error('Error fetching traffic incidents:', error);
+        container.innerHTML = '<div class="traffic-no-alerts">Erreur avec l\'alerte trafic.</div>';
+
     }
 }
 
-function renderRecruits(recruits: CarouselItem[]) {
-    const grid = document.getElementById('recruits-grid');
-    if (!grid) return;
-
-    grid.innerHTML = recruits.map(recruit => `
-        <div class="recruit-card">
-            <img src="${recruit.image}" alt="${recruit.name}" style="background-color: #ccc;">
-            <div class="recruit-info">
-                <div class="recruit-name">${recruit.name}</div>
-                <p>${recruit.description}</p>
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderEvents(events: EventItem[]) {
-    const container = document.getElementById('events-container');
+async function fetchWeatherAlerts() {
+    const container = document.getElementById('weather-alerts');
     if (!container) return;
 
-    // Clear existing content and indicators
-    container.innerHTML = '';
-    const section = container.closest('.future-event');
-    let indicators = section?.querySelector('.carousel-indicators');
-    if (indicators) indicators.innerHTML = '';
+    try {
+        const response = await fetch('/api/weather-alerts');
+        if (!response.ok) throw new Error('Weather alerts failed');
+        const data = await response.json();
+
+        // Server returns { alerts: [{level: 'yellow'|'orange'|'red', label: string}] }
+        const alerts: { level: string; label: string }[] = data.alerts || [];
+
+        if (alerts.length > 0) {
+            container.innerHTML = alerts.map(a =>
+                `<div class="weather-alert-item weather-alert-${a.level}">${a.label}</div>`
+            ).join('');
+        } else {
+            container.innerHTML = '<div class="traffic-no-alerts">Aucune alerte météo.</div>';
+        }
+    } catch (error) {
+        console.error('Error fetching weather alerts:', error);
+        container.innerHTML = '<div class="traffic-no-alerts">Service météo indisponible.</div>';
+    }
+}
+
+function renderStandardSlide(msg: CarouselItem): string {
+    const images = msg.images || (msg.image ? [msg.image] : []);
+    const hasMultipleImages = images.length > 1;
+    const hasAnyImage = images.length > 0;
+    const textContent = (msg.text || msg.description || '').trim();
+
+    let imagesHtml = '';
+    if (hasMultipleImages) {
+        imagesHtml = `
+            <div class="image-gallery">
+                ${images.map(img => `<img src="${img}" class="gallery-image" alt="Gallery Image">`).join('')}
+            </div>
+        `;
+    } else if (hasAnyImage) {
+        imagesHtml = `<img src="${images[0]}" class="carousel-big-image" alt="Message Image" style="width: 100%; object-fit: contain;">`;
+    }
+
+    if (textContent) {
+        return `
+            <div class="carousel-slide-content ${hasMultipleImages ? 'with-gallery' : ''}">
+                <div class="carousel-text-content">
+                    <blockquote style="font-size: clamp(1.8rem, 3.2vw, 3.8rem); max-height: 25vh; overflow: hidden;">${textContent}</blockquote>
+                    ${msg.title ? `<cite><strong>${msg.title}</strong></cite>` : ''}
+                </div>
+                ${imagesHtml}
+            </div>
+        `;
+    } else if (hasAnyImage) {
+        return `
+            <div class="carousel-slide-content only-image ${hasMultipleImages ? 'with-gallery' : ''}">
+                ${imagesHtml}
+            </div>
+        `;
+    } else {
+        return `
+            <div class="carousel-slide-content only-text" style="justify-content: center;">
+                <blockquote style="font-size: clamp(3rem, 5vw, 6rem);">"${textContent}"</blockquote>
+                ${msg.title ? `<cite><strong>${msg.title}</strong></cite>` : ''}
+            </div>
+        `;
+    }
+}
+
+// function renderRecruits(recruits: CarouselItem[]) { ... } // No longer used
+
+function renderEvents(events: EventItem[]) {
+    const carousel = document.getElementById('events-carousel');
+    if (!carousel) return;
 
     if (!events || events.length === 0) {
-        container.innerHTML = '<p style="text-align: center; opacity: 0.7;">Aucun événement prévu.</p>';
+        carousel.innerHTML = '<p style="text-align: center; opacity: 0.7; width: 100%; color: white;">Aucun événement prévu.</p>';
         return;
     }
 
-    // Group events dynamically based on content length
-    const pages: EventItem[][] = [];
-    let currentPage: EventItem[] = [];
-    let pageWeight = 0;
+    // Sort events by date
+    const sortedEvents = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    events.forEach(event => {
-        const descLen = (event.description || '').length;
-        const hasImg = !!event.image;
-        // Weight: 2 for long events (>150 chars or image + >60 chars), 1 for short
-        const weight = (descLen > 150 || (hasImg && descLen > 60)) ? 2 : 1;
-
-        if (pageWeight + weight > 2 && currentPage.length > 0) {
-            pages.push(currentPage);
-            currentPage = [event];
-            pageWeight = weight;
-        } else {
-            currentPage.push(event);
-            pageWeight += weight;
-        }
-    });
-    if (currentPage.length > 0) pages.push(currentPage);
-
-    console.log(`[Events] Total pages: ${pages.length}`, pages);
-
-    if (pages.length === 1 && pages[0].length === 1) {
-        // Single page rendering (only 1 event total)
-        container.innerHTML = pages[0].map(event => renderEventCard(event)).join('');
-    } else {
-        // Carousel mode or multiple events on single page
-        let slidesHtml = pages.map((page, index) => `
-            <div class="carousel-slide ${index === 0 ? 'active' : ''}" style="height: 100%; flex-direction: column; gap: 0.5vh;">
-                ${page.map(event => renderEventCard(event)).join('')}
-            </div>
-        `).join('');
-
-        // Put slides and indicators in the container
-        container.innerHTML = slidesHtml + (pages.length > 1 ? '<div class="carousel-indicators event-indicators"></div>' : '');
-
-        // Initialize carousel logic for events if multiple pages
-        if (pages.length > 1) {
-            initCarousel('events-container');
-        }
+    // Chunk into 4 for paging
+    const isMobile = window.innerWidth <= 768;
+    const eventChunkSize = isMobile ? 1 : 4;
+    const chunks: EventItem[][] = [];
+    for (let i = 0; i < sortedEvents.length; i += eventChunkSize) {
+        chunks.push(sortedEvents.slice(i, i + eventChunkSize));
     }
+
+    carousel.innerHTML = `
+        <div class="carousel-indicators event-indicators"></div>
+        ${chunks.map((chunk, index) => `
+            <div class="carousel-slide ${index === 0 ? 'active' : ''}">
+                ${chunk.map(event => renderEventCard(event)).join('')}
+            </div>
+        `).join('')}
+    `;
+
+    // Start carousel with indicators and auto-play
+    initCarousel('events-carousel');
 }
 
 function renderEventCard(event: EventItem): string {
-    // Format date nicely: "Mer. 4 Mars - 14:30"
     let formattedDate = event.date;
     try {
         const dateObj = new Date(event.date);
@@ -302,25 +438,17 @@ function renderEventCard(event: EventItem): string {
         };
         formattedDate = new Intl.DateTimeFormat('fr-FR', options).format(dateObj);
         formattedDate = formattedDate.replace(',', ' -');
-        formattedDate = formattedDate.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     } catch (e) {
         console.error("Error formatting date:", e);
     }
 
-    const title = (event.title || '').trim();
-    const description = (event.description || '').trim();
-    const hasText = title || description;
-
     return `
-        <div class="event-card ${!hasText ? 'only-image' : ''}" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+        <div class="event-card">
             <div class="event-date">${formattedDate}</div>
-            ${event.image ? `<img src="${event.image}" alt="${event.title}" style="flex: 1; width: 100%; min-height: 0; object-fit: contain; border-radius: 8px; margin-bottom: 0.3vh; background: rgba(0,0,0,0.2);">` : ''}
-            ${hasText ? `
-            <div style="flex-shrink: 0;">
-                ${title ? `<h3 style="font-size: clamp(1.2rem, 1.5vw, 1.7rem); margin-bottom: 0.2vh; font-weight: 700; color: white;">${title}</h3>` : ''}
-                ${description ? `<p style="font-size: clamp(1rem, 1.2vw, 1.3rem); margin-bottom: 0; line-height: 1.2; opacity: 0.9; white-space: pre-wrap;">${description}</p>` : ''}
+            ${event.title ? `<h3 class="event-title">${event.title}</h3>` : ''}
+            <div class="event-body">
+                ${(event.description || '').trim() ? `<p class="event-desc">${event.description}</p>` : ''}
             </div>
-            ` : ''}
         </div>
     `;
 }
@@ -333,6 +461,7 @@ function renderFlashNews(newsItems: FlashNewsItem[]) {
 
     if (!newsItems || newsItems.length === 0) {
         container.style.display = 'none';
+        document.body.classList.remove('flash-active');
         return;
     }
 
@@ -347,8 +476,10 @@ function renderFlashNews(newsItems: FlashNewsItem[]) {
     if (activeNews) {
         content.textContent = activeNews.text;
         container.style.display = 'block';
+        document.body.classList.add('flash-active');
     } else {
         container.style.display = 'none';
+        document.body.classList.remove('flash-active');
     }
 }
 
@@ -396,6 +527,15 @@ function initCarousel(carouselId: string) {
             slide.classList.remove('active');
             if (i === index) {
                 slide.classList.add('active');
+                // Fix for Leaflet map: init on first view, then invalidateSize
+                if (slide.querySelector('#traffic-map')) {
+                    if (!trafficMapInstance && (window as any).L) {
+                        // Initialize map now that the container is visible
+                        setTimeout(() => initTrafficMap(), 50);
+                    } else if (trafficMapInstance) {
+                        setTimeout(() => trafficMapInstance.invalidateSize(), 50);
+                    }
+                }
             }
         });
 
@@ -411,18 +551,34 @@ function initCarousel(carouselId: string) {
         }
     }
 
+    const BASE_DURATION = 5000;
+
+    function getSlideDuration(index: number): number {
+        const slide = slides[index] as HTMLElement;
+        const type = slide?.dataset?.slideType || '';
+        if (type === 'traffic' || type === 'recruits') return BASE_DURATION * 2;
+        if (type === 'message-image') return BASE_DURATION * 1.5;
+        return BASE_DURATION;
+    }
+
     function nextSlide() {
         state.currentIndex = (state.currentIndex + 1) % slides.length;
         showSlide(state.currentIndex);
+        scheduleNext();
+    }
+
+    function scheduleNext() {
+        if (state.interval) clearTimeout(state.interval);
+        state.interval = setTimeout(nextSlide, getSlideDuration(state.currentIndex));
     }
 
     function startAutoPlay() {
-        if (state.interval) clearInterval(state.interval);
-        state.interval = setInterval(nextSlide, 5000);
+        if (state.interval) clearTimeout(state.interval);
+        scheduleNext();
     }
 
     function stopAutoPlay() {
-        if (state.interval) clearInterval(state.interval);
+        if (state.interval) clearTimeout(state.interval);
     }
 
     container.addEventListener('mouseenter', stopAutoPlay);
@@ -511,40 +667,48 @@ function initEditModal() {
         const inputs = dynamicForm.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
 
         // Handle File Upload first if present
-        const fileInput = dynamicForm.querySelector('input[type="file"]') as HTMLInputElement;
-        let uploadedImagePath = '';
+        const fileInputs = dynamicForm.querySelectorAll<HTMLInputElement>('input[type="file"]');
+        let uploadedPaths: string[] = [];
 
-        if (fileInput && fileInput.files && fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            try {
-                // Upload the file using FormData
-                const formDataUpload = new FormData();
-                formDataUpload.append('file', file);
+        for (const fileInput of Array.from(fileInputs)) {
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                try {
+                    const formDataUpload = new FormData();
+                    // Append all files from this input
+                    Array.from(fileInput.files).forEach(file => {
+                        formDataUpload.append('files', file);
+                    });
 
-                const uploadResponse = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formDataUpload
-                });
+                    const uploadResponse = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formDataUpload
+                    });
 
-                if (uploadResponse.ok) {
-                    const uploadData = await uploadResponse.json();
-                    uploadedImagePath = uploadData.path;
-                } else {
-                    const err = await uploadResponse.json();
-                    alert('Échec du téléchargement : ' + (err.detail || 'Erreur inconnue'));
+                    if (uploadResponse.ok) {
+                        const uploadData = await uploadResponse.json();
+                        uploadedPaths = uploadedPaths.concat(uploadData.paths);
+                    } else {
+                        const err = await uploadResponse.json();
+                        alert('Échec du téléchargement : ' + (err.detail || 'Erreur inconnue'));
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error uploading images:', error);
+                    alert('Erreur lors du téléchargement des images.');
                     return;
                 }
-            } catch (error) {
-                console.error('Error uploading image:', error);
-                alert('Erreur lors du téléchargement de l\'image.');
-                return;
             }
         }
 
         inputs.forEach(input => {
             if (input.type === 'file') {
-                if (uploadedImagePath) {
-                    formData[input.name] = uploadedImagePath;
+                if (uploadedPaths.length > 0) {
+                    // Decide whether to store as string (legacy) or array
+                    if (input.name === 'images') {
+                        formData[input.name] = uploadedPaths;
+                    } else {
+                        formData[input.name] = uploadedPaths[0]; // Legacy fallback
+                    }
                 }
             } else {
                 formData[input.name] = input.value;
@@ -570,7 +734,7 @@ function initEditModal() {
         }
 
         // Basic Validation
-        if (category === 'recruits' && !uploadedImagePath) {
+        if (category === 'recruits' && (!uploadedPaths || uploadedPaths.length === 0)) {
             alert('La photo est obligatoire pour une nouvelle recrue !');
             return;
         }
@@ -609,13 +773,13 @@ function renderFormFields(category: string, container: HTMLElement) {
         case 'chiefMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'image', label: 'Image (Optionnel)', type: 'file' }
+                { name: 'images', label: 'Images (Optionnel)', type: 'file', multiple: true }
             ];
             break;
         case 'amicalistMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'image', label: 'Image (Optionnel)', type: 'file' }
+                { name: 'images', label: 'Images (Optionnel)', type: 'file', multiple: true }
             ];
             break;
         case 'recruits':
@@ -629,8 +793,7 @@ function renderFormFields(category: string, container: HTMLElement) {
             fields = [
                 { name: 'date', label: 'Date et Heure', type: 'datetime-local' },
                 { name: 'title', label: 'Titre', type: 'text' },
-                { name: 'description', label: 'Description', type: 'textarea' },
-                { name: 'image', label: 'Image (Optionnel)', type: 'file' }
+                { name: 'description', label: 'Description', type: 'textarea' }
             ];
             break;
         case 'flashNews':
@@ -646,7 +809,7 @@ function renderFormFields(category: string, container: HTMLElement) {
             <label for="${field.name}">${field.label}</label>
             ${field.type === 'textarea'
             ? `<textarea id="${field.name}" name="${field.name}" rows="3"></textarea>`
-            : `<input type="${field.type}" id="${field.name}" name="${field.name}" value="${field.value || ''}">`
+            : `<input type="${field.type}" id="${field.name}" name="${field.name}" value="${field.value || ''}" ${field.multiple ? 'multiple' : ''}>`
         }
         </div>
     `).join('');
@@ -745,9 +908,9 @@ async function fetchWeather() {
     const container = document.getElementById('weather-container');
     if (!container) return;
 
-    // Taluyers coordinates
-    const lat = 45.641;
-    const lon = 4.722;
+    // Millery coordinates
+    const lat = 45.644;
+    const lon = 4.797;
 
     try {
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`);

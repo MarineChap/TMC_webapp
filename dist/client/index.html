@@ -16,8 +16,13 @@
     <!-- Twemoji -->
     <script src="https://unpkg.com/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
     <!-- Custom CSS -->
-  <script type="module" crossorigin src="/assets/main-dUUvnF1R.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-CfkXm089.css">
+    <!-- Leaflet for Traffic Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" crossorigin src="/assets/main-DDqw-d88.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-DBlc-Y5R.css">
 </head>
 
 <body>
@@ -48,63 +53,45 @@
 
     <div class="page-container">
         <!-- Dashboard Content Grid -->
-        <div class="dashboard-grid">
-            <!-- Column 1: Info & Events -->
-            <aside class="sidebar">
+        <div class="main-layout">
+            <!-- Left Column: 2/3 Top Carousel, 1/3 Bottom Events -->
+            <div class="left-column">
+                <!-- Combined Main Carousel Section (2/3 height) -->
+                <section id="main-carousel-section" class="carousel-section main-carousel-container">
+                    <div id="main-carousel" class="carousel-container">
+                        <div class="carousel-indicators"></div>
+                    </div>
+                </section>
 
-                <!-- Future Event Section -->
-                <section id="events" class="future-event">
+                <section id="events-section" class="horizontal-events-section">
                     <h2>à vos agendas</h2>
-                    <div id="events-container">
-                        <!-- Events will be loaded here -->
+                    <div id="events-carousel" class="carousel-container event-indicators-container">
+                        <div id="events-container" class="events-row">
+                            <!-- Events cards will be loaded here -->
+                        </div>
+                        <div class="carousel-indicators event-indicators"></div>
                     </div>
                 </section>
-            </aside>
+            </div>
 
-            <!-- Column 2: Messages -->
-            <main class="main-content">
-                <!-- Chief's Carousel Section -->
-                <section id="chief-messages" class="carousel-section">
-                    <h2>Messages Encadrement</h2>
-                    <div id="chief-carousel" class="carousel-container">
-                        <div class="carousel-indicators"></div>
-                    </div>
-                </section>
-
-                <!-- Amicalist's Carousel Section -->
-                <section id="amicalist-messages" class="carousel-section">
-                    <h2>Messages Amicale</h2>
-                    <div id="amicalist-carousel" class="carousel-container">
-                        <div class="carousel-indicators"></div>
-                    </div>
-                </section>
-            </main>
-
-            <!-- Column 3: Recruits -->
-            <aside class="recruits-sidebar">
-                <!-- Weather Widget -->
+            <!-- Right Column: Petite colonne for Weather & Logo -->
+            <aside class="side-column">
                 <section id="weather-widget" class="weather-widget">
-                    <h2>Météo</h2>
                     <div id="weather-container" class="weather-container">
                         <div class="weather-loading">Chargement...</div>
                     </div>
                 </section>
 
-                <section id="recruits" class="carousel-section">
-                    <h2>Nouveaux Engagés</h2>
-                    <div id="recruits-carousel" class="carousel-container">
-                        <div class="carousel-indicators"></div>
-                    </div>
+                <section id="alerts-widget" class="alerts-widget">
+                    <div id="weather-alerts" class="alerts-list"></div>
+                    <div id="traffic-alerts" class="alerts-list"></div>
                 </section>
+
+                <div class="station-logo-container">
+                    <img src="/assets/station_logo-m3f5Z6IM.png" alt="Logo Caserne" class="station-logo">
+                </div>
             </aside>
         </div>
-
-        <!-- SDMIS News Carousel at the bottom -->
-        <section id="sdmis-carousel-section">
-            <div id="sdmis-carousel">
-                <!-- SDMIS Carousel will be loaded here -->
-            </div>
-        </section>
     </div>
 
     <!-- Footer -->
