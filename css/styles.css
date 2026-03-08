@@ -383,6 +383,37 @@ section h2::after {
     transition: 0.3s;
 }
 
+/* This targets the specific slide content when it's a message-image type */
+[data-slide-type="message-image"] .carousel-slide-content {
+    flex-direction: row;
+    /* Force side-by-side */
+    align-items: center;
+    justify-content: space-around;
+    gap: 40px;
+    padding: 0 20px;
+}
+
+/* Make sure the text and image share the space */
+[data-slide-type="message-image"] .carousel-text-content,
+[data-slide-type="message-image"] .carousel-big-image {
+    flex: 1;
+    width: 50%;
+}
+
+/* Adjust the image to not overflow its half of the screen */
+[data-slide-type="message-image"] .carousel-big-image {
+    max-height: 70vh;
+    /* Bigger allowed height since it's not sharing vertical space */
+    object-fit: cover;
+    /* Or contain, depending on your preference */
+}
+
+/* Keep the "Recruits" and "Traffic" slides as columns */
+[data-slide-type="recruits"] .carousel-slide-content,
+[data-slide-type="traffic"] .carousel-slide-content {
+    flex-direction: column;
+}
+
 /* Event-specific indicators for visibility on red background */
 .event-indicators .indicator {
     background: rgba(255, 255, 255, 0.4);
