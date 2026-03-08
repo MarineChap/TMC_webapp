@@ -312,6 +312,7 @@ section h2::after {
     /* Leave more space for text/titles */
     object-fit: contain;
     border-radius: 12px;
+    flex-shrink: 1;
 }
 
 .carousel-slide-content.only-image .carousel-big-image {
@@ -346,7 +347,7 @@ section h2::after {
 }
 
 .carousel-slide blockquote {
-    font-size: clamp(1.3rem, 3vw, 2.5rem);
+    font-size: clamp(1rem, 3.5vmin, 2.2rem);
     font-weight: 600;
     font-style: normal;
     color: var(--text-dark);
@@ -396,9 +397,19 @@ section h2::after {
 /* Make sure the text and image share the space */
 [data-slide-type="message-image"] .carousel-text-content,
 [data-slide-type="message-image"] .carousel-big-image {
-    flex: 1;
-    width: 50%;
+    max-width: 50%;
+    /* Dans le mode côte à côte */
+    max-height: 60vh;
+    /* Ne dépasse jamais 60% de la hauteur de l'écran */
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    /* Garde l'image entière sans la couper */
+    flex-shrink: 1;
+    /* Autorise l'image à rétrécir si le texte a besoin de place */
+    border-radius: 12px;
 }
+
 
 /* Adjust the image to not overflow its half of the screen */
 [data-slide-type="message-image"] .carousel-big-image {
