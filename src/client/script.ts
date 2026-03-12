@@ -461,7 +461,7 @@ function renderStandardSlide(msg: CarouselItem): string {
         return `
             <div class="carousel-slide-content ${hasMultipleImages ? 'with-gallery' : ''}">
                 <div class="carousel-text-content">
-                    <blockquote style="font-size: clamp(1.8rem, 3.2vw, 3.8rem); max-height: 25vh; overflow: hidden;">${textContent}</blockquote>
+                    <blockquote style="font-size: clamp(1.2rem, 2.3vw, 2.5rem); max-height: 25vh; overflow: hidden;">${textContent}</blockquote>
                     ${msg.displayAuthor !== false ? (msg.author || msg.title ? `<cite><strong>${msg.author || msg.title}</strong></cite>` : '') : ''}
                 </div>
                 ${imagesHtml}
@@ -476,7 +476,7 @@ function renderStandardSlide(msg: CarouselItem): string {
     } else {
         return `
             <div class="carousel-slide-content only-text" style="justify-content: center;">
-                <blockquote style="font-size: clamp(3rem, 5vw, 6rem);">"${textContent}"</blockquote>
+                <blockquote style="font-size: clamp(1.8rem, 3vw, 3.5rem);">"${textContent}"</blockquote>
                 ${msg.displayAuthor !== false ? (msg.author || msg.title ? `<cite><strong>${msg.author || msg.title}</strong></cite>` : '') : ''}
             </div>
         `;

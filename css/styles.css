@@ -347,7 +347,7 @@ section h2::after {
 }
 
 .carousel-slide blockquote {
-    font-size: clamp(1rem, 3.5vmin, 2.2rem);
+    font-size: clamp(1rem, 2.5vmin, 1.8rem);
     font-weight: 600;
     font-style: normal;
     color: var(--text-dark);
@@ -466,7 +466,7 @@ section h2::after {
     flex-direction: column;
     gap: 1vh;
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .alerts-list {
@@ -1034,7 +1034,7 @@ main>section {
 }
 
 /* Wide Screen / TV Optimization */
-@media (min-width: 2000px) {
+@media (min-width: 1200px) {
     :root {
         --border-radius: 30px;
     }
@@ -1073,9 +1073,9 @@ main>section {
 
     /* Reduce weather alert size on TV and apply proportions */
     .weather-alert-item {
-        font-size: 1.2rem !important;
-        padding: 10px 15px !important;
-        margin-bottom: 8px !important;
+        font-size: 0.9rem !important;
+        padding: 6px 10px !important;
+        margin-bottom: 4px !important;
     }
 
     #alerts-widget {
@@ -1090,7 +1090,7 @@ main>section {
         flex: 2 !important;
         /* 20% */
         min-height: 0 !important;
-        overflow-y: auto;
+        overflow: hidden !important;
     }
 
     #traffic-alerts-1,
