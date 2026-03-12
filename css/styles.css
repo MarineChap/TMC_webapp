@@ -1079,27 +1079,29 @@ main>section {
     }
 
     #alerts-widget {
+        height: 65vh !important;
+        /* Constrain height to allow flex to work */
         gap: 0 !important;
-        /* No gap for precise percentages */
+        display: flex !important;
+        flex-direction: column !important;
     }
 
     #weather-alerts {
-        height: 20% !important;
-        max-height: 20% !important;
-        flex: none !important;
+        flex: 2 !important;
+        /* 20% */
+        min-height: 0 !important;
         overflow-y: auto;
     }
 
     #traffic-alerts-1,
     #traffic-alerts-2 {
-        height: 40% !important;
-        max-height: 40% !important;
-        flex: none !important;
+        flex: 4 !important;
+        /* 40% each */
+        min-height: 0 !important;
     }
 
     .traffic-alert-card {
-        height: auto !important;
-        max-height: 100%;
+        height: 100% !important;
         position: absolute;
     }
 }
