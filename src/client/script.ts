@@ -216,7 +216,7 @@ function renderMainCarousel(data: DbData) {
 
     // Add Traffic Page
     slides.push({
-        title: "Trafic & Circulation",
+        title: "Circulation",
         content: `
             <div class="carousel-slide-content">
                 <div class="traffic-container" style="height: 100%; width: 100%;">
@@ -405,13 +405,13 @@ async function fetchTrafficIncidents() {
             setupCarousels();
 
         } else {
-            const noAlerts = '<div class="traffic-no-alerts">Aucune alerte trafic.</div>';
+            const noAlerts = '<div class="traffic-no-alerts">Aucune alerte circulation.</div>';
             container1.innerHTML = noAlerts;
             container2.innerHTML = '';
         }
     } catch (error) {
         console.error('Error fetching traffic incidents:', error);
-        container1.innerHTML = '<div class="traffic-no-alerts">Service trafic momentanément indisponible.</div>';
+        container1.innerHTML = '<div class="traffic-no-alerts">Service circulation momentanément indisponible.</div>';
     }
 }
 

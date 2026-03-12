@@ -1071,16 +1071,36 @@ main>section {
         background: linear-gradient(90deg, #d32f2f, var(--primary-red), #d32f2f);
     }
 
-    /* Reduce weather alert size on TV */
+    /* Reduce weather alert size on TV and apply proportions */
     .weather-alert-item {
         font-size: 1.2rem !important;
         padding: 10px 15px !important;
         margin-bottom: 8px !important;
     }
 
+    #alerts-widget {
+        gap: 0 !important;
+        /* No gap for precise percentages */
+    }
+
     #weather-alerts {
-        max-height: 15vh;
+        height: 20% !important;
+        max-height: 20% !important;
+        flex: none !important;
         overflow-y: auto;
+    }
+
+    #traffic-alerts-1,
+    #traffic-alerts-2 {
+        height: 40% !important;
+        max-height: 40% !important;
+        flex: none !important;
+    }
+
+    .traffic-alert-card {
+        height: auto !important;
+        max-height: 100%;
+        position: absolute;
     }
 }
 
