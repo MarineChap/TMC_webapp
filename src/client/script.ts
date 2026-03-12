@@ -34,6 +34,7 @@ interface DbData {
     recruits: CarouselItem[];
     events: EventItem[];
     flashNews: FlashNewsItem[];
+    sdmisNews: CarouselItem[];
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -172,6 +173,18 @@ function renderMainCarousel(data: DbData) {
             type: hasImage ? 'message-image' : 'message'
         });
     });
+
+    // Add SDMIS News
+    if (data.sdmisNews) {
+        data.sdmisNews.forEach(msg => {
+            const hasImage = !!(msg.image || (msg.images && msg.images.length > 0));
+            slides.push({
+                title: "Nouvelles du SDMIS",
+                content: renderStandardSlide(msg),
+                type: hasImage ? 'message-image' : 'message'
+            });
+        });
+    }
 
     const isMobile = window.innerWidth <= 768;
     const recruitChunkSize = isMobile ? 1 : 3;
@@ -338,7 +351,7 @@ async function fetchTrafficIncidents() {
                 const cat = props.iconCategory;
                 const label = categoryLabels[cat] || `Incident (cat. ${cat})`;
                 const roads = (props.roadNumbers && props.roadNumbers.length > 0) ? ` (${props.roadNumbers.join(', ')})` : '';
-                const fromTo = (props.from && props.to) ? `${props.from} ➔ ${props.to}` : (props.from || props.to || '');
+                const fromTo = (props.from && props.to) ? `${props.from} <i class="fa-solid fa-angle-right" style="margin: 0 5px; opacity: 0.7;"></i> ${props.to}` : (props.from || props.to || '');
                 const events = props.events || [];
                 const description = events.length > 0 && events[0].description ? events[0].description : '';
 
@@ -360,8 +373,8 @@ async function fetchTrafficIncidents() {
             const group2 = sortedIncidents.slice(5, 10);
 
             const setupCarousels = () => {
-                container1.innerHTML = group1.map((f, i) => renderIncident(f, i)).join('');
-                container2.innerHTML = group2.map((f, i) => renderIncident(f, i)).join('');
+                container1.innerHTML = group1.map((f: any, i: number) => renderIncident(f, i)).join('');
+                container2.innerHTML = group2.map((f: any, i: number) => renderIncident(f, i)).join('');
                 container1.style.display = 'flex';
                 container2.style.display = 'flex';
 
@@ -814,7 +827,7 @@ function initEditModal() {
 
         // Auto-signature
         if (currentUser && currentUser.username) {
-            if (category === 'chiefMessages' || category === 'amicalistMessages') {
+            if (category === 'chiefMessages' || category === 'amicalistMessages' || category === 'sdmisNews') {
                 formData['author'] = currentUser.username;
             }
         }
@@ -890,6 +903,13 @@ function renderFormFields(category: string, container: HTMLElement) {
             fields = [
                 { name: 'text', label: 'Message Flash', type: 'textarea' },
                 { name: 'endTime', label: 'Date et Heure de fin', type: 'datetime-local' }
+            ];
+            break;
+        case 'sdmisNews':
+            fields = [
+                { name: 'text', label: 'Description', type: 'textarea' },
+                { name: 'images', label: 'Images (Optionnel)', type: 'file', multiple: true },
+                { name: 'displayAuthor', label: 'Afficher l\'auteur', type: 'checkbox', value: true }
             ];
             break;
     }

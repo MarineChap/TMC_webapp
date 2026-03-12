@@ -307,7 +307,7 @@ app.post('/api/save', authenticate, async (req, res) => {
 
         await saveDb(dbData);
 
-        if (['chiefMessages', 'amicalistMessages'].includes(category)) {
+        if (['chiefMessages', 'amicalistMessages', 'sdmisNews'].includes(category)) {
             addLog('message_created', { category, username: actingUser, text: item.text?.substring(0, 50) });
         } else {
             addLog('item_added', { category, username: actingUser, name: item.name || item.title });
@@ -352,7 +352,7 @@ app.post('/api/delete', authenticate, async (req, res) => {
 
         await saveDb(dbData);
 
-        if (['chiefMessages', 'amicalistMessages'].includes(category)) {
+        if (['chiefMessages', 'amicalistMessages', 'sdmisNews'].includes(category)) {
             addLog('message_deleted', { category, username: actingUser, text: item.text?.substring(0, 50) });
         } else {
             addLog('item_deleted', { category, username: actingUser, name: item.name || item.title });

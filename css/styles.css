@@ -1070,6 +1070,18 @@ main>section {
         border-bottom: 4px solid var(--accent-gold);
         background: linear-gradient(90deg, #d32f2f, var(--primary-red), #d32f2f);
     }
+
+    /* Reduce weather alert size on TV */
+    .weather-alert-item {
+        font-size: 1.2rem !important;
+        padding: 10px 15px !important;
+        margin-bottom: 8px !important;
+    }
+
+    #weather-alerts {
+        max-height: 15vh;
+        overflow-y: auto;
+    }
 }
 
 /* SDMIS News Carousel Styles */
@@ -1387,7 +1399,9 @@ main>section {
 #traffic-alerts-2 {
     position: relative;
     flex: 1;
-    min-height: 120px;
+    min-height: 0;
+    /* Allow them to shrink/grow together */
+    height: 120px;
     overflow: hidden;
 }
 
