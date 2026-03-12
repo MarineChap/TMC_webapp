@@ -150,6 +150,36 @@ setInterval(async () => {
     }
 }, 3000000);
 
+// --- Middleware: Auth ---
+async function authenticate(req: Request, res: Response, next: Function) {
+    if (!supabase) return res.status(500).json({ detail: "Supabase not configured" });
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ detail: "Missing or invalid token" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    try {
+        const { data, error } = await supabase.auth.getUser(token);
+        if (error || !data.user) throw new Error("Invalid token");
+
+        const profileRes = await supabase.from('profiles').select('username, is_validated').eq('id', data.user.id).single();
+        const profileData = profileRes.data || { username: data.user.email?.split("@")[0], is_validated: false };
+
+        (req as any).user = {
+            id: data.user.id,
+            email: data.user.email,
+            username: profileData.username,
+            is_validated: profileData.is_validated
+        };
+
+        next();
+    } catch (e: any) {
+        res.status(401).json({ detail: e.message || String(e) });
+    }
+}
+
 // --- API Endpoints ---
 
 app.post('/api/auth/login', async (req: Request, res: Response) => {
@@ -255,10 +285,11 @@ app.get('/api/last-modified', async (req, res) => {
     }
 });
 
-app.post('/api/save', async (req, res) => {
+app.post('/api/save', authenticate, async (req, res) => {
     try {
         const { category, item } = req.body;
         const dbData = await loadDb();
+        const actingUser = (req as any).user.username;
 
         if (!dbData[category]) {
             return res.status(400).json({ detail: "Invalid category" });
@@ -277,9 +308,9 @@ app.post('/api/save', async (req, res) => {
         await saveDb(dbData);
 
         if (['chiefMessages', 'amicalistMessages'].includes(category)) {
-            addLog('message_created', { category, author: item.author, text: item.text?.substring(0, 50) });
+            addLog('message_created', { category, username: actingUser, text: item.text?.substring(0, 50) });
         } else {
-            addLog('item_added', { category, name: item.name || item.title });
+            addLog('item_added', { category, username: actingUser, name: item.name || item.title });
         }
 
         res.json({ status: "success" });
@@ -288,10 +319,11 @@ app.post('/api/save', async (req, res) => {
     }
 });
 
-app.post('/api/delete', async (req, res) => {
+app.post('/api/delete', authenticate, async (req, res) => {
     try {
         const { category, item } = req.body;
         const dbData = await loadDb();
+        const actingUser = (req as any).user.username;
 
         if (!dbData[category]) {
             return res.status(404).json({ detail: "Category not found" });
@@ -321,9 +353,9 @@ app.post('/api/delete', async (req, res) => {
         await saveDb(dbData);
 
         if (['chiefMessages', 'amicalistMessages'].includes(category)) {
-            addLog('message_deleted', { category, author: item.author, text: item.text?.substring(0, 50) });
+            addLog('message_deleted', { category, username: actingUser, text: item.text?.substring(0, 50) });
         } else {
-            addLog('item_deleted', { category, name: item.name || item.title });
+            addLog('item_deleted', { category, username: actingUser, name: item.name || item.title });
         }
 
         res.json({ status: "success" });
@@ -332,7 +364,7 @@ app.post('/api/delete', async (req, res) => {
     }
 });
 
-app.post('/api/upload', upload.array('files', 10), (req, res) => {
+app.post('/api/upload', authenticate, upload.array('files', 10), (req, res) => {
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
         return res.status(400).json({ detail: "No files uploaded" });
     }
@@ -396,17 +428,23 @@ app.get('/api/weather-alerts', async (req, res) => {
         // Look at current + next 6 hours
         const upcomingCodes = codes.slice(currentHour, currentHour + 6);
 
-        // Determine worst weather in next 6h
-        const hasThunderstorm = upcomingCodes.some((c: number) => c >= 95);
-        const hasHeavyRain = upcomingCodes.some((c: number) => (c >= 65 && c <= 67) || (c >= 80 && c <= 82));
-        const hasSnow = upcomingCodes.some((c: number) => c >= 71 && c <= 77);
-        const hasFog = upcomingCodes.some((c: number) => c >= 45 && c <= 48);
-
         const alerts: { level: string; label: string }[] = [];
-        if (hasThunderstorm) alerts.push({ level: 'orange', label: 'Orages prévus' });
-        else if (hasHeavyRain) alerts.push({ level: 'yellow', label: 'Pluies importantes' });
-        if (hasSnow) alerts.push({ level: 'orange', label: 'Neige / Verglas' });
-        if (hasFog) alerts.push({ level: 'yellow', label: 'Brouillard' });
+
+        const findFirstHour = (condition: (c: number) => boolean) => {
+            const index = upcomingCodes.findIndex(condition);
+            if (index === -1) return null;
+            return index === 0 ? 'maintenant' : `dans ${index}h`;
+        };
+
+        const tStormTime = findFirstHour((c: number) => c >= 95);
+        const rainTime = findFirstHour((c: number) => (c >= 65 && c <= 67) || (c >= 80 && c <= 82));
+        const snowTime = findFirstHour((c: number) => c >= 71 && c <= 77);
+        const fogTime = findFirstHour((c: number) => c >= 45 && c <= 48);
+
+        if (tStormTime) alerts.push({ level: 'orange', label: `Orages (${tStormTime})` });
+        else if (rainTime) alerts.push({ level: 'yellow', label: `Pluies (${rainTime})` });
+        if (snowTime) alerts.push({ level: 'orange', label: `Neige / Verglas (${snowTime})` });
+        if (fogTime) alerts.push({ level: 'yellow', label: `Brouillard (${fogTime})` });
 
         res.json({ alerts });
     } catch (e: any) {
@@ -416,6 +454,10 @@ app.get('/api/weather-alerts', async (req, res) => {
 });
 
 
+app.get('/api/test', (req, res) => {
+    res.json({ message: "API is working" });
+});
+
 app.get('/api/traffic-incidents', async (req, res) => {
     try {
         if (!process.env.TOMTOM_API_KEY) {
@@ -424,13 +466,11 @@ app.get('/api/traffic-incidents', async (req, res) => {
 
         const bbox = '4.581,45.491,5.013,45.797';
 
-        // 1. Correction de la structure des champs
-        // Note: On utilise souvent "incidents" à la racine pour la v5
-        const fields = '{incidents{properties{iconCategory,events{description}}}}';
+        // 1. Demande des champs valides en v5 (from, to, roadNumbers)
+        const fields = '{incidents{type,properties{iconCategory,events{description},from,to,roadNumbers},geometry{type,coordinates}}}';
 
-        // 2. Utilisation de URLSearchParams pour un encodage propre
         const params = new URLSearchParams({
-            key: process.env.TOMTOM_API_KEY,
+            key: process.env.TOMTOM_API_KEY as string,
             bbox: bbox,
             fields: fields,
             language: 'fr-FR'

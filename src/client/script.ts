@@ -12,6 +12,7 @@ interface CarouselItem {
     image?: string;
     images?: string[];
     name?: string;
+    displayAuthor?: boolean;
 }
 
 interface EventItem {
@@ -45,6 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchWeatherAlerts();
     fetchTrafficIncidents();
     checkInitialLogsRoute();
+
+    // Periodic Refresh for Weather and Traffic (every 5 minutes)
+    setInterval(() => {
+        fetchWeather();
+        fetchWeatherAlerts();
+        fetchTrafficIncidents();
+    }, 300000);
 
     const sdmisCarousel = new SdmisNewsCarousel('sdmis-carousel');
     sdmisCarousel.init();
@@ -139,6 +147,9 @@ function renderMainCarousel(data: DbData) {
     existingSlides.forEach(slide => slide.remove());
 
     const indicators = container.querySelector('.carousel-indicators');
+
+    // Reset traffic map instance because the DOM element is about to be replaced
+    trafficMapInstance = null;
 
     const slides: { title: string, content: string, type?: string }[] = [];
 
@@ -243,7 +254,8 @@ function initTrafficMap() {
 
     // Add TomTom Traffic Flow Layer
     const tomtomKey = 'sd4npPH6dTyPskdvxFQG0pVgnhBXrJAX';
-    L.tileLayer(`https://{s}.api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${tomtomKey}`, {
+    // Use 'relative' instead of 'relative0' for reliability, and ensuring it's the latest supported for this style
+    L.tileLayer(`https://{s}.api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${tomtomKey}`, {
         subdomains: 'abcd',
         tileSize: 256,
         zoomOffset: 0,
@@ -254,21 +266,26 @@ function initTrafficMap() {
 }
 
 async function fetchTrafficIncidents() {
-    const container = document.getElementById('traffic-alerts');
-    if (!container) return;
+    const container1 = document.getElementById('traffic-alerts-1');
+    const container2 = document.getElementById('traffic-alerts-2');
+    if (!container1 || !container2) return;
 
     try {
+        console.log("Fetching traffic incidents...");
         const response = await fetch('/api/traffic-incidents');
-        if (!response.ok) throw new Error('Traffic incidents failed');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Traffic incidents API error:', errorText);
+            throw new Error('Traffic incidents failed');
+        }
+
         const data = await response.json();
+        console.log("Traffic data received:", data);
 
-        // TomTom v5 returns GeoJSON FeatureCollection
-        const features = data.features || [];
+        const incidents = data.incidents || data.features || [];
 
-        // Filter to only show incidents with significant categories
-        // iconCategory: 0=Unknown,1=Accident,2=Fog,3=Dangerous conditions,4=Rain,
-        // 5=Ice,6=Jam,7=Lane closed,8=Road closed,9=Road works,10=Wind,11=Flooding,14=Broken down vehicle
         const categoryLabels: Record<number, string> = {
+            0: 'Incident inconnu',
             1: 'Accident',
             2: 'Brouillard',
             3: 'Conditions dangereuses',
@@ -283,42 +300,105 @@ async function fetchTrafficIncidents() {
             14: 'Véhicule en panne'
         };
 
-        if (features.length > 0) {
-            // Deduplicate by category, and show max 5 items
-            const seenCategories = new Set<number>();
-            const uniqueFeatures = features.filter((f: any) => {
-                const cat = f.properties?.iconCategory;
-                if (!seenCategories.has(cat)) {
-                    seenCategories.add(cat);
-                    return true;
+        if (incidents.length > 0) {
+            // Taluyers center coordinates
+            const centerLat = 45.6411;
+            const centerLon = 4.7214;
+
+            // Helper to calculate distance (simple pythagorean for small distances)
+            const getDistance = (lat1: number, lon1: number) => {
+                return Math.sqrt(Math.pow(lat1 - centerLat, 2) + Math.pow(lon1 - centerLon, 2));
+            };
+
+            const processedIncidents = incidents.map((f: any) => {
+                const props = f.properties || f;
+                const geom = f.geometry || {};
+
+                let lat = centerLat, lon = centerLon;
+                if (geom.type === 'Point') {
+                    [lon, lat] = geom.coordinates;
+                } else if (geom.type === 'LineString' && geom.coordinates.length > 0) {
+                    [lon, lat] = geom.coordinates[0];
                 }
-                return false;
-            }).slice(0, 5);
 
-            container.innerHTML = uniqueFeatures.map((f: any) => {
-                const cat = f.properties?.iconCategory;
+                return {
+                    ...f,
+                    distance: getDistance(lat, lon),
+                    props: props
+                };
+            });
+
+            // Sort by distance and take 10 closest
+            const sortedIncidents = processedIncidents
+                .sort((a: any, b: any) => a.distance - b.distance)
+                .slice(0, 10);
+
+            const renderIncident = (f: any, idx: number) => {
+                const props = f.props;
+                const cat = props.iconCategory;
                 const label = categoryLabels[cat] || `Incident (cat. ${cat})`;
+                const roads = (props.roadNumbers && props.roadNumbers.length > 0) ? ` (${props.roadNumbers.join(', ')})` : '';
+                const fromTo = (props.from && props.to) ? `${props.from} ➔ ${props.to}` : (props.from || props.to || '');
+                const events = props.events || [];
+                const description = events.length > 0 && events[0].description ? events[0].description : '';
 
-                // Extract description (usually contains the road name and direction)
-                const events = f.properties?.events || [];
-                const description = events.length > 0 && events[0].description
-                    ? events[0].description
-                    : 'Localisation non précisée';
+                let subtext = description;
+                if (subtext.toLowerCase() === label.toLowerCase() || !subtext) {
+                    subtext = fromTo || 'Localisation non précisée';
+                } else if (fromTo) {
+                    subtext = `<strong>${fromTo}</strong><br>${subtext}`;
+                }
 
-                return `<div class="traffic-alert-card">
-                            <h4>${label}</h4>
-                            <p>${description}</p>
+                return `<div class="traffic-alert-card ${idx === 0 ? 'active' : ''}">
+                            <h4>${label}${roads}</h4>
+                            <p>${subtext}</p>
                         </div>`;
-            }).join('');
-            container.style.display = 'flex';
-        } else {
-            container.innerHTML = '<div class="traffic-no-alerts">Aucune alerte trafic.</div>';
-        }
+            };
 
+            // Split into two groups of 5
+            const group1 = sortedIncidents.slice(0, 5);
+            const group2 = sortedIncidents.slice(5, 10);
+
+            const setupCarousels = () => {
+                container1.innerHTML = group1.map((f, i) => renderIncident(f, i)).join('');
+                container2.innerHTML = group2.map((f, i) => renderIncident(f, i)).join('');
+                container1.style.display = 'flex';
+                container2.style.display = 'flex';
+
+                let currentIndex = 0;
+                const cards1 = container1.querySelectorAll('.traffic-alert-card');
+                const cards2 = container2.querySelectorAll('.traffic-alert-card');
+
+                if ((window as any).trafficSyncInterval) {
+                    clearInterval((window as any).trafficSyncInterval);
+                }
+
+                const total1 = cards1.length;
+                const total2 = cards2.length;
+
+                if (total1 > 1 || total2 > 1) {
+                    (window as any).trafficSyncInterval = setInterval(() => {
+                        if (total1 > 0) cards1[currentIndex % total1].classList.remove('active');
+                        if (total2 > 0) cards2[currentIndex % total2].classList.remove('active');
+
+                        currentIndex++;
+
+                        if (total1 > 0) cards1[currentIndex % total1].classList.add('active');
+                        if (total2 > 0) cards2[currentIndex % total2].classList.add('active');
+                    }, 5000);
+                }
+            };
+
+            setupCarousels();
+
+        } else {
+            const noAlerts = '<div class="traffic-no-alerts">Aucune alerte trafic.</div>';
+            container1.innerHTML = noAlerts;
+            container2.innerHTML = '';
+        }
     } catch (error) {
         console.error('Error fetching traffic incidents:', error);
-        container.innerHTML = '<div class="traffic-no-alerts">Erreur avec l\'alerte trafic.</div>';
-
+        container1.innerHTML = '<div class="traffic-no-alerts">Service trafic momentanément indisponible.</div>';
     }
 }
 
@@ -339,7 +419,7 @@ async function fetchWeatherAlerts() {
                 `<div class="weather-alert-item weather-alert-${a.level}">${a.label}</div>`
             ).join('');
         } else {
-            container.innerHTML = '<div class="traffic-no-alerts">Aucune alerte météo.</div>';
+            container.innerHTML = '<div class="traffic-no-alerts">Pas d\'alertes météo en cours.</div>';
         }
     } catch (error) {
         console.error('Error fetching weather alerts:', error);
@@ -369,7 +449,7 @@ function renderStandardSlide(msg: CarouselItem): string {
             <div class="carousel-slide-content ${hasMultipleImages ? 'with-gallery' : ''}">
                 <div class="carousel-text-content">
                     <blockquote style="font-size: clamp(1.8rem, 3.2vw, 3.8rem); max-height: 25vh; overflow: hidden;">${textContent}</blockquote>
-                    ${msg.title ? `<cite><strong>${msg.title}</strong></cite>` : ''}
+                    ${msg.displayAuthor !== false ? (msg.author || msg.title ? `<cite><strong>${msg.author || msg.title}</strong></cite>` : '') : ''}
                 </div>
                 ${imagesHtml}
             </div>
@@ -384,7 +464,7 @@ function renderStandardSlide(msg: CarouselItem): string {
         return `
             <div class="carousel-slide-content only-text" style="justify-content: center;">
                 <blockquote style="font-size: clamp(3rem, 5vw, 6rem);">"${textContent}"</blockquote>
-                ${msg.title ? `<cite><strong>${msg.title}</strong></cite>` : ''}
+                ${msg.displayAuthor !== false ? (msg.author || msg.title ? `<cite><strong>${msg.author || msg.title}</strong></cite>` : '') : ''}
             </div>
         `;
     }
@@ -679,8 +759,12 @@ function initEditModal() {
                         formDataUpload.append('files', file);
                     });
 
+                    const token = localStorage.getItem('access_token');
                     const uploadResponse = await fetch('/api/upload', {
                         method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: formDataUpload
                     });
 
@@ -710,6 +794,8 @@ function initEditModal() {
                         formData[input.name] = uploadedPaths[0]; // Legacy fallback
                     }
                 }
+            } else if (input.type === 'checkbox') {
+                formData[input.name] = (input as HTMLInputElement).checked;
             } else {
                 formData[input.name] = input.value;
             }
@@ -741,10 +827,12 @@ function initEditModal() {
 
         // Send to Server
         try {
+            const token = localStorage.getItem('access_token');
             const response = await fetch('/api/save', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     category: category,
@@ -773,13 +861,15 @@ function renderFormFields(category: string, container: HTMLElement) {
         case 'chiefMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'images', label: 'Images (Optionnel)', type: 'file', multiple: true }
+                { name: 'images', label: 'Images (Optionnel)', type: 'file', multiple: true },
+                { name: 'displayAuthor', label: 'Afficher l\'auteur', type: 'checkbox', value: true }
             ];
             break;
         case 'amicalistMessages':
             fields = [
                 { name: 'text', label: 'Message', type: 'textarea' },
-                { name: 'images', label: 'Images (Optionnel)', type: 'file', multiple: true }
+                { name: 'images', label: 'Images (Optionnel)', type: 'file', multiple: true },
+                { name: 'displayAuthor', label: 'Afficher l\'auteur', type: 'checkbox', value: true }
             ];
             break;
         case 'recruits':
@@ -809,7 +899,10 @@ function renderFormFields(category: string, container: HTMLElement) {
             <label for="${field.name}">${field.label}</label>
             ${field.type === 'textarea'
             ? `<textarea id="${field.name}" name="${field.name}" rows="3"></textarea>`
-            : `<input type="${field.type}" id="${field.name}" name="${field.name}" value="${field.value || ''}" ${field.multiple ? 'multiple' : ''}>`
+            : `<input type="${field.type}" id="${field.name}" name="${field.name}" 
+                value="${field.value || ''}" 
+                ${field.multiple ? 'multiple' : ''} 
+                ${field.type === 'checkbox' && field.value ? 'checked' : ''}>`
         }
         </div>
     `).join('');
@@ -876,10 +969,12 @@ function renderExistingItems(category: string, items: any[], container: HTMLElem
 
 async function deleteItem(category: string, item: any) {
     try {
+        const token = localStorage.getItem('access_token');
         const response = await fetch('/api/delete', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 category: category,
@@ -1134,8 +1229,8 @@ function setupAuthModals() {
 function setupLogsModal() {
     const logsModal = document.getElementById('logs-modal');
     const logsBtn = document.getElementById('logs-btn');
-    const logsContent = document.getElementById('logs-content');
-    const closeBtn = logsModal?.querySelector('.close-btn');
+    const logsContent = document.getElementById('logs-list');
+    const closeBtn = logsModal?.querySelector('.close-logs-btn');
 
     if (logsBtn && logsModal) {
         logsBtn.addEventListener('click', async () => {

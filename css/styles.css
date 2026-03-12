@@ -742,9 +742,10 @@ section h2::after {
     display: flex;
     flex-direction: row;
     gap: 1.5vw;
-    height: 100%;
+    flex: 1;
     width: 100%;
     align-items: stretch;
+    min-height: 0;
 }
 
 .recruit-card-mini {
@@ -1285,14 +1286,7 @@ main>section {
     opacity: 0.9;
 }
 
-.traffic-no-alerts {
-    text-align: center;
-    color: var(--text-dark);
-    opacity: 0.7;
-    font-style: italic;
-    font-size: 0.85rem;
-    padding: 1vh 0;
-}
+/* Consoliated no-alerts style below */
 
 /* Mobile Layout - Column View */
 @media (max-width: 1024px) {
@@ -1372,4 +1366,58 @@ main>section {
     .carousel-slide-content.only-image .carousel-big-image {
         max-height: 40vh;
     }
+}
+
+/* Sidebar Alerts Layout */
+#alerts-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    height: 100%;
+    overflow: hidden;
+}
+
+#weather-alerts {
+    flex: none;
+    min-height: 40px;
+}
+
+/* Traffic Alerts Sidebar Carousel */
+#traffic-alerts-1,
+#traffic-alerts-2 {
+    position: relative;
+    flex: 1;
+    min-height: 120px;
+    overflow: hidden;
+}
+
+.traffic-alert-card {
+    position: absolute;
+    width: 100%;
+    height: 115px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+    transform: translateY(20px);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.traffic-alert-card.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.traffic-no-alerts {
+    text-align: center;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    padding: 20px;
 }
