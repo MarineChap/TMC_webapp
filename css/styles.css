@@ -136,6 +136,7 @@ nav ul {
     gap: 2vh;
     height: 100%;
     min-width: 0;
+    transition: gap 0.8s ease-in-out;
 }
 
 .side-column {
@@ -153,6 +154,7 @@ nav ul {
     height: 65vh;
     /* Approximately 2/3 */
     flex: none;
+    transition: height 0.8s ease-in-out;
 }
 
 .horizontal-events-section {
@@ -168,6 +170,27 @@ nav ul {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: all 0.8s ease-in-out;
+    opacity: 1;
+}
+
+/* Map Active State - Expanding Traffic slide */
+.left-column.map-active {
+    gap: 0;
+}
+
+.left-column.map-active .main-carousel-container {
+    height: 92vh;
+    /* Expanded height to take events space */
+}
+
+.left-column.map-active .horizontal-events-section {
+    height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+    opacity: 0;
+    border-width: 0;
 }
 
 

@@ -256,10 +256,10 @@ function initTrafficMap() {
     // If already initialized, just return
     if (trafficMapInstance) return;
 
-    const lat = 45.644;
-    const lon = 4.797;
+    const lat = 45.6411; // Taluyers
+    const lon = 4.7214;  // Taluyers
 
-    trafficMapInstance = L.map('traffic-map').setView([lat, lon], 11);
+    trafficMapInstance = L.map('traffic-map').setView([lat, lon], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
@@ -274,6 +274,28 @@ function initTrafficMap() {
         zoomOffset: 0,
         opacity: 0.7
     }).addTo(trafficMapInstance);
+
+    // Add specific points for Taluyers, Chassagny, and Montagny
+    const towns = [
+        { name: 'Taluyers', lat: 45.6411, lon: 4.7214 },
+        { name: 'Chassagny', lat: 45.6061, lon: 4.7333 },
+        { name: 'Montagny', lat: 45.6286, lon: 4.7475 }
+    ];
+
+    towns.forEach(town => {
+        L.circleMarker([town.lat, town.lon], {
+            radius: 8,
+            fillColor: "#3388ff",
+            color: "#ffffff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.8
+        }).addTo(trafficMapInstance).bindTooltip(`<b>${town.name}</b>`, {
+            permanent: true,
+            direction: 'top',
+            offset: [0, -10]
+        });
+    });
 
     fetchTrafficIncidents();
 }
@@ -616,17 +638,23 @@ function initCarousel(carouselId: string) {
     }
 
     function showSlide(index: number) {
+        let isTrafficSlide = false;
         slides.forEach((slide, i) => {
             slide.classList.remove('active');
             if (i === index) {
                 slide.classList.add('active');
+                if ((slide as HTMLElement).dataset.slideType === 'traffic') {
+                    isTrafficSlide = true;
+                }
                 // Fix for Leaflet map: init on first view, then invalidateSize
                 if (slide.querySelector('#traffic-map')) {
                     if (!trafficMapInstance && (window as any).L) {
                         // Initialize map now that the container is visible
-                        setTimeout(() => initTrafficMap(), 50);
+                        // Wait for CSS transition to complete before init
+                        setTimeout(() => initTrafficMap(), 850);
                     } else if (trafficMapInstance) {
-                        setTimeout(() => trafficMapInstance.invalidateSize(), 50);
+                        // Resize after the expanding CSS transition ends (800ms)
+                        setTimeout(() => trafficMapInstance.invalidateSize(), 850);
                     }
                 }
             }
@@ -641,6 +669,16 @@ function initCarousel(carouselId: string) {
                     ind.classList.add('active');
                 }
             });
+        }
+
+        // Apply expand animation class
+        const leftColumn = document.querySelector('.left-column');
+        if (leftColumn) {
+            if (isTrafficSlide) {
+                leftColumn.classList.add('map-active');
+            } else {
+                leftColumn.classList.remove('map-active');
+            }
         }
     }
 
