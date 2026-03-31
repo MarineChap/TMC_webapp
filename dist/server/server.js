@@ -20,6 +20,7 @@ const UPLOAD_DIR = path.join(PROJECT_ROOT, 'assets/images');
 // Supabase config
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const TOMTOM_API_KEY = process.env.TOMTOM_API_KEY;
 const supabase = SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 // Middleware
 app.use(cors());
@@ -50,7 +51,7 @@ async function loadDb() {
     }
     catch (e) {
         if (e.code === 'ENOENT') {
-            return { chiefMessages: [], amicalistMessages: [], recruits: [], events: [], flashNews: [] };
+            return { chiefMessages: [], amicalistMessages: [], recruits: [], events: [], flashNews: [], sdmisNews: [] };
         }
         throw e;
     }
@@ -133,6 +134,33 @@ setInterval(async () => {
         console.error("Cleanup error:", e);
     }
 }, 3000000);
+// --- Middleware: Auth ---
+async function authenticate(req, res, next) {
+    if (!supabase)
+        return res.status(500).json({ detail: "Supabase not configured" });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ detail: "Missing or invalid token" });
+    }
+    const token = authHeader.split(" ")[1];
+    try {
+        const { data, error } = await supabase.auth.getUser(token);
+        if (error || !data.user)
+            throw new Error("Invalid token");
+        const profileRes = await supabase.from('profiles').select('username, is_validated').eq('id', data.user.id).single();
+        const profileData = profileRes.data || { username: data.user.email?.split("@")[0], is_validated: false };
+        req.user = {
+            id: data.user.id,
+            email: data.user.email,
+            username: profileData.username,
+            is_validated: profileData.is_validated
+        };
+        next();
+    }
+    catch (e) {
+        res.status(401).json({ detail: e.message || String(e) });
+    }
+}
 // --- API Endpoints ---
 app.post('/api/auth/login', async (req, res) => {
     if (!supabase)
@@ -231,10 +259,11 @@ app.get('/api/last-modified', async (req, res) => {
         res.status(404).json({ detail: "DB not found" });
     }
 });
-app.post('/api/save', async (req, res) => {
+app.post('/api/save', authenticate, async (req, res) => {
     try {
         const { category, item } = req.body;
         const dbData = await loadDb();
+        const actingUser = req.user.username;
         if (!dbData[category]) {
             return res.status(400).json({ detail: "Invalid category" });
         }
@@ -246,11 +275,11 @@ app.post('/api/save', async (req, res) => {
             dbData.events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         }
         await saveDb(dbData);
-        if (['chiefMessages', 'amicalistMessages'].includes(category)) {
-            addLog('message_created', { category, author: item.author, text: item.text?.substring(0, 50) });
+        if (['chiefMessages', 'amicalistMessages', 'sdmisNews'].includes(category)) {
+            addLog('message_created', { category, username: actingUser, text: item.text?.substring(0, 50) });
         }
         else {
-            addLog('item_added', { category, name: item.name || item.title });
+            addLog('item_added', { category, username: actingUser, name: item.name || item.title });
         }
         res.json({ status: "success" });
     }
@@ -258,10 +287,11 @@ app.post('/api/save', async (req, res) => {
         res.status(500).json({ detail: e.message || String(e) });
     }
 });
-app.post('/api/delete', async (req, res) => {
+app.post('/api/delete', authenticate, async (req, res) => {
     try {
         const { category, item } = req.body;
         const dbData = await loadDb();
+        const actingUser = req.user.username;
         if (!dbData[category]) {
             return res.status(404).json({ detail: "Category not found" });
         }
@@ -284,11 +314,11 @@ app.post('/api/delete', async (req, res) => {
             }
         }
         await saveDb(dbData);
-        if (['chiefMessages', 'amicalistMessages'].includes(category)) {
-            addLog('message_deleted', { category, author: item.author, text: item.text?.substring(0, 50) });
+        if (['chiefMessages', 'amicalistMessages', 'sdmisNews'].includes(category)) {
+            addLog('message_deleted', { category, username: actingUser, text: item.text?.substring(0, 50) });
         }
         else {
-            addLog('item_deleted', { category, name: item.name || item.title });
+            addLog('item_deleted', { category, username: actingUser, name: item.name || item.title });
         }
         res.json({ status: "success" });
     }
@@ -296,7 +326,7 @@ app.post('/api/delete', async (req, res) => {
         res.status(500).json({ detail: e.message || String(e) });
     }
 });
-app.post('/api/upload', upload.array('files', 10), (req, res) => {
+app.post('/api/upload', authenticate, upload.array('files', 10), (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).json({ detail: "No files uploaded" });
     }
@@ -339,6 +369,78 @@ app.get('/api/sdmis-rss', async (req, res) => {
     }
     catch (e) {
         res.status(500).json({ detail: e.message || String(e) });
+    }
+});
+app.get('/api/weather-alerts', async (req, res) => {
+    try {
+        // Use open-meteo hourly forecast to derive severe weather alerts
+        // If weather code is severe (thunderstorm, blizzard, heavy snow, heavy rain), emit alert
+        const lat = 45.641;
+        const lon = 4.722;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=weathercode&forecast_days=1&timezone=auto`;
+        const response = await fetch(url);
+        if (!response.ok)
+            throw new Error('open-meteo failed');
+        const data = await response.json();
+        const codes = data.hourly?.weathercode || [];
+        const now = new Date();
+        const currentHour = now.getHours();
+        // Look at current + next 6 hours
+        const upcomingCodes = codes.slice(currentHour, currentHour + 6);
+        const alerts = [];
+        const findFirstHour = (condition) => {
+            const index = upcomingCodes.findIndex(condition);
+            if (index === -1)
+                return null;
+            return index === 0 ? 'maintenant' : `dans ${index}h`;
+        };
+        const tStormTime = findFirstHour((c) => c >= 95);
+        const rainTime = findFirstHour((c) => (c >= 65 && c <= 67) || (c >= 80 && c <= 82));
+        const snowTime = findFirstHour((c) => c >= 71 && c <= 77);
+        const fogTime = findFirstHour((c) => c >= 45 && c <= 48);
+        if (tStormTime)
+            alerts.push({ level: 'orange', label: `Orages (${tStormTime})` });
+        else if (rainTime)
+            alerts.push({ level: 'yellow', label: `Pluies (${rainTime})` });
+        if (snowTime)
+            alerts.push({ level: 'orange', label: `Neige / Verglas (${snowTime})` });
+        if (fogTime)
+            alerts.push({ level: 'yellow', label: `Brouillard (${fogTime})` });
+        res.json({ alerts });
+    }
+    catch (e) {
+        console.error('Weather Alerts Error:', e.message);
+        res.status(500).json({ detail: e.message || String(e) });
+    }
+});
+app.get('/api/test', (req, res) => {
+    res.json({ message: "API is working" });
+});
+app.get('/api/traffic-incidents', async (req, res) => {
+    try {
+        if (!process.env.TOMTOM_API_KEY) {
+            throw new Error('TomTom API Key missing');
+        }
+        const bbox = '4.581,45.491,5.013,45.797';
+        // 1. Demande des champs valides en v5 (from, to, roadNumbers)
+        const fields = '{incidents{type,properties{iconCategory,events{description},from,to,roadNumbers},geometry{type,coordinates}}}';
+        const params = new URLSearchParams({
+            key: process.env.TOMTOM_API_KEY,
+            bbox: bbox,
+            fields: fields,
+            language: 'fr-FR'
+        });
+        const url = `https://api.tomtom.com/traffic/services/5/incidentDetails?${params.toString()}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errBody = await response.text();
+            return res.status(response.status).json({ error: errBody });
+        }
+        const data = await response.json();
+        res.json(data);
+    }
+    catch (e) {
+        res.status(500).json({ detail: e.message });
     }
 });
 app.get('/api/ip', (req, res) => {

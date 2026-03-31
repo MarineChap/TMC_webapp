@@ -2,7 +2,12 @@ import { SdmisNewsCarousel } from './sdmisCarousel';
 
 let currentUser: any = null;
 let isUserValidated = false;
+let currentEditItem: { category: string; original: any; index: number } | null = null;
+let keptImages: Record<string, string[]> = {};
 let trafficMapInstance: any = null;
+let trafficMarkersLayer: any = null;
+let trafficIncidentControl: any = null;
+let trafficIncidents: any[] = [];
 
 interface CarouselItem {
     text?: string;
@@ -100,6 +105,8 @@ async function loadData() {
         const data: DbData = await response.json();
 
         renderMainCarousel(data);
+        fetchWeather();
+        fetchWeatherAlerts();
         renderEvents(data.events);
 
         currentFlashNews = data.flashNews || [];
@@ -151,6 +158,8 @@ function renderMainCarousel(data: DbData) {
 
     // Reset traffic map instance because the DOM element is about to be replaced
     trafficMapInstance = null;
+    trafficMarkersLayer = null;
+    trafficIncidentControl = null;
 
     const slides: { title: string, content: string, type?: string }[] = [];
 
@@ -212,6 +221,22 @@ function renderMainCarousel(data: DbData) {
             `,
             type: 'recruits'
         });
+    });
+
+    // Add Weather Page
+    slides.push({
+        title: "Météo",
+        content: `
+            <div class="carousel-slide-content weather-slide-content">
+                <div class="weather-slide-forecast">
+                    <div id="carousel-weather-container" class="weather-container">
+                        <div class="weather-loading">Chargement...</div>
+                    </div>
+                </div>
+                <div id="carousel-weather-alerts" class="weather-slide-alerts"></div>
+            </div>
+        `,
+        type: 'weather'
     });
 
     // Add Traffic Page
@@ -297,148 +322,156 @@ function initTrafficMap() {
         });
     });
 
+    trafficMarkersLayer = L.layerGroup().addTo(trafficMapInstance);
+    addIncidentMarkersToMap(trafficIncidents);
+
     fetchTrafficIncidents();
 }
 
-async function fetchTrafficIncidents() {
-    const container1 = document.getElementById('traffic-alerts-1');
-    const container2 = document.getElementById('traffic-alerts-2');
-    if (!container1 || !container2) return;
+function addIncidentMarkersToMap(incidents: any[]) {
+    const L = (window as any).L;
+    if (!L || !trafficMapInstance || !trafficMarkersLayer) return;
 
-    try {
-        console.log("Fetching traffic incidents...");
-        const response = await fetch('/api/traffic-incidents');
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Traffic incidents API error:', errorText);
-            throw new Error('Traffic incidents failed');
+    trafficMarkersLayer.clearLayers();
+
+    const categoryLabels: Record<number, string> = {
+        0: 'Incident inconnu', 1: 'Accident', 2: 'Brouillard',
+        3: 'Conditions dangereuses', 4: 'Pluie intense', 5: 'Verglas',
+        6: 'Embouteillage', 7: 'Voie fermée', 8: 'Route fermée',
+        9: 'Travaux', 10: 'Vent fort', 11: 'Inondation', 14: 'Véhicule en panne'
+    };
+
+    const getMarkerColor = (cat: number) => {
+        if ([1, 8, 11].includes(cat)) return '#e53935';      // red: accident, road closed, flood
+        if ([5, 7, 9, 10].includes(cat)) return '#ff6d00';   // orange: ice, lane closed, works, wind
+        return '#ffd600';                                      // yellow: jam, fog, rain, unknown
+    };
+
+    incidents.forEach((f: any) => {
+        const props = f.props || f.properties || {};
+        const geom = f.geometry || {};
+
+        let lat: number, lon: number;
+        if (geom.type === 'Point') {
+            [lon, lat] = geom.coordinates;
+        } else if (geom.type === 'LineString' && geom.coordinates.length > 0) {
+            const mid = Math.floor(geom.coordinates.length / 2);
+            [lon, lat] = geom.coordinates[mid];
+        } else {
+            return; // no usable geometry
         }
+
+        const cat = props.iconCategory;
+        const color = getMarkerColor(cat);
+        const label = categoryLabels[cat] || `Incident (cat. ${cat})`;
+        const roads = (props.roadNumbers?.length > 0) ? ` (${props.roadNumbers.join(', ')})` : '';
+        const fromTo = (props.from && props.to) ? `${props.from} → ${props.to}` : (props.from || props.to || '');
+        const events = props.events || [];
+        const description = events.length > 0 ? (events[0].description || '') : '';
+
+        const icon = L.divIcon({
+            className: '',
+            html: `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>`,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+        });
+
+        const popupLines = [`<b>${label}${roads}</b>`];
+        if (fromTo) popupLines.push(fromTo);
+        if (description && description.toLowerCase() !== label.toLowerCase()) popupLines.push(`<i>${description}</i>`);
+
+        L.marker([lat, lon], { icon })
+            .addTo(trafficMarkersLayer)
+            .bindPopup(popupLines.join('<br>'));
+    });
+
+    // Remove old control panel if present
+    if (trafficIncidentControl) {
+        trafficMapInstance.removeControl(trafficIncidentControl);
+        trafficIncidentControl = null;
+    }
+
+    if (incidents.length === 0) return;
+
+    // Build an always-visible overlay panel listing all incidents
+    const VISIBLE_ROWS = 3;
+    const needsScroll = incidents.length > VISIBLE_ROWS;
+    const animDuration = Math.max(8, incidents.length * 2.5);
+
+    const buildRows = () => incidents.map((f: any) => {
+        const p = f.props || f.properties || {};
+        const cat = p.iconCategory;
+        const color = getMarkerColor(cat);
+        const lbl = categoryLabels[cat] || `Incident (cat. ${cat})`;
+        const roads = (p.roadNumbers?.length > 0) ? ` (${p.roadNumbers.join(', ')})` : '';
+        const from = p.from || '';
+        const to = p.to || '';
+        const location = (from && to) ? `${from} → ${to}` : (from || to || '');
+        return `<div class="incident-panel-row">
+            <span class="incident-panel-dot" style="background:${color};"></span>
+            <span class="incident-panel-text"><strong>${lbl}${roads}</strong>${location ? `<br>${location}` : ''}</span>
+        </div>`;
+    }).join('');
+
+    const rowsHtml = buildRows();
+
+    const control = L.control({ position: 'bottomleft' });
+    control.onAdd = () => {
+        const div = L.DomUtil.create('div', 'traffic-incident-panel');
+        L.DomEvent.disableClickPropagation(div);
+        div.innerHTML = `
+            <div class="incident-scroll-wrapper">
+                <div class="incident-scroll-track${needsScroll ? ' scrolling' : ''}"
+                     ${needsScroll ? `style="animation-duration:${animDuration}s"` : ''}>
+                    ${rowsHtml}
+                    ${needsScroll ? rowsHtml : ''}
+                </div>
+            </div>`;
+        return div;
+    };
+    control.addTo(trafficMapInstance);
+    trafficIncidentControl = control;
+}
+
+async function fetchTrafficIncidents() {
+    try {
+        const response = await fetch('/api/traffic-incidents');
+        if (!response.ok) throw new Error('Traffic incidents failed');
 
         const data = await response.json();
-        console.log("Traffic data received:", data);
-
         const incidents = data.incidents || data.features || [];
 
-        const categoryLabels: Record<number, string> = {
-            0: 'Incident inconnu',
-            1: 'Accident',
-            2: 'Brouillard',
-            3: 'Conditions dangereuses',
-            4: 'Pluie intense',
-            5: 'Verglas',
-            6: 'Embouteillage',
-            7: 'Voie fermée',
-            8: 'Route fermée',
-            9: 'Travaux',
-            10: 'Vent fort',
-            11: 'Inondation',
-            14: 'Véhicule en panne'
-        };
+        if (incidents.length === 0) return;
 
-        if (incidents.length > 0) {
-            // Taluyers center coordinates
-            const centerLat = 45.6411;
-            const centerLon = 4.7214;
+        const centerLat = 45.6411;
+        const centerLon = 4.7214;
 
-            // Helper to calculate distance (simple pythagorean for small distances)
-            const getDistance = (lat1: number, lon1: number) => {
-                return Math.sqrt(Math.pow(lat1 - centerLat, 2) + Math.pow(lon1 - centerLon, 2));
-            };
+        const processedIncidents = incidents.map((f: any) => {
+            const props = f.properties || f;
+            const geom = f.geometry || {};
 
-            const processedIncidents = incidents.map((f: any) => {
-                const props = f.properties || f;
-                const geom = f.geometry || {};
+            let lat = centerLat, lon = centerLon;
+            if (geom.type === 'Point') {
+                [lon, lat] = geom.coordinates;
+            } else if (geom.type === 'LineString' && geom.coordinates.length > 0) {
+                [lon, lat] = geom.coordinates[0];
+            }
 
-                let lat = centerLat, lon = centerLon;
-                if (geom.type === 'Point') {
-                    [lon, lat] = geom.coordinates;
-                } else if (geom.type === 'LineString' && geom.coordinates.length > 0) {
-                    [lon, lat] = geom.coordinates[0];
-                }
+            return { ...f, distance: Math.sqrt(Math.pow(lat - centerLat, 2) + Math.pow(lon - centerLon, 2)), props };
+        });
 
-                return {
-                    ...f,
-                    distance: getDistance(lat, lon),
-                    props: props
-                };
-            });
+        trafficIncidents = processedIncidents
+            .sort((a: any, b: any) => a.distance - b.distance)
+            .slice(0, 10);
 
-            // Sort by distance and take 10 closest
-            const sortedIncidents = processedIncidents
-                .sort((a: any, b: any) => a.distance - b.distance)
-                .slice(0, 10);
-
-            const renderIncident = (f: any, idx: number) => {
-                const props = f.props;
-                const cat = props.iconCategory;
-                const label = categoryLabels[cat] || `Incident (cat. ${cat})`;
-                const roads = (props.roadNumbers && props.roadNumbers.length > 0) ? ` (${props.roadNumbers.join(', ')})` : '';
-                const fromTo = (props.from && props.to) ? `${props.from} <i class="fa-solid fa-angle-right" style="margin: 0 5px; opacity: 0.7;"></i> ${props.to}` : (props.from || props.to || '');
-                const events = props.events || [];
-                const description = events.length > 0 && events[0].description ? events[0].description : '';
-
-                let subtext = description;
-                if (subtext.toLowerCase() === label.toLowerCase() || !subtext) {
-                    subtext = fromTo || 'Localisation non précisée';
-                } else if (fromTo) {
-                    subtext = `<strong>${fromTo}</strong><br>${subtext}`;
-                }
-
-                return `<div class="traffic-alert-card ${idx === 0 ? 'active' : ''}">
-                            <h4>${label}${roads}</h4>
-                            <p>${subtext}</p>
-                        </div>`;
-            };
-
-            // Split into two groups of 5
-            const group1 = sortedIncidents.slice(0, 5);
-            const group2 = sortedIncidents.slice(5, 10);
-
-            const setupCarousels = () => {
-                container1.innerHTML = group1.map((f: any, i: number) => renderIncident(f, i)).join('');
-                container2.innerHTML = group2.map((f: any, i: number) => renderIncident(f, i)).join('');
-                container1.style.display = 'flex';
-                container2.style.display = 'flex';
-
-                let currentIndex = 0;
-                const cards1 = container1.querySelectorAll('.traffic-alert-card');
-                const cards2 = container2.querySelectorAll('.traffic-alert-card');
-
-                if ((window as any).trafficSyncInterval) {
-                    clearInterval((window as any).trafficSyncInterval);
-                }
-
-                const total1 = cards1.length;
-                const total2 = cards2.length;
-
-                if (total1 > 1 || total2 > 1) {
-                    (window as any).trafficSyncInterval = setInterval(() => {
-                        if (total1 > 0) cards1[currentIndex % total1].classList.remove('active');
-                        if (total2 > 0) cards2[currentIndex % total2].classList.remove('active');
-
-                        currentIndex++;
-
-                        if (total1 > 0) cards1[currentIndex % total1].classList.add('active');
-                        if (total2 > 0) cards2[currentIndex % total2].classList.add('active');
-                    }, 5000);
-                }
-            };
-
-            setupCarousels();
-
-        } else {
-            const noAlerts = '<div class="traffic-no-alerts">Aucune alerte circulation.</div>';
-            container1.innerHTML = noAlerts;
-            container2.innerHTML = '';
-        }
+        addIncidentMarkersToMap(trafficIncidents);
     } catch (error) {
         console.error('Error fetching traffic incidents:', error);
-        container1.innerHTML = '<div class="traffic-no-alerts">Service circulation momentanément indisponible.</div>';
     }
 }
 
 async function fetchWeatherAlerts() {
-    const container = document.getElementById('weather-alerts');
+    const container = document.getElementById('carousel-weather-alerts');
     if (!container) return;
 
     try {
@@ -483,7 +516,7 @@ function renderStandardSlide(msg: CarouselItem): string {
         return `
             <div class="carousel-slide-content ${hasMultipleImages ? 'with-gallery' : ''}">
                 <div class="carousel-text-content">
-                    <blockquote style="font-size: clamp(1.2rem, 2.3vw, 2.5rem); max-height: 25vh; overflow: hidden;">${textContent}</blockquote>
+                    <blockquote style="font-size: clamp(1.2rem, 2.3vw, 2.5rem);">${textContent}</blockquote>
                     ${msg.displayAuthor !== false ? (msg.author || msg.title ? `<cite><strong>${msg.author || msg.title}</strong></cite>` : '') : ''}
                 </div>
                 ${imagesHtml}
@@ -498,7 +531,7 @@ function renderStandardSlide(msg: CarouselItem): string {
     } else {
         return `
             <div class="carousel-slide-content only-text" style="justify-content: center;">
-                <blockquote style="font-size: clamp(1.8rem, 3vw, 3.5rem);">"${textContent}"</blockquote>
+                <blockquote style="font-size: clamp(1.8rem, 3vw, 3.5rem);">${textContent}</blockquote>
                 ${msg.displayAuthor !== false ? (msg.author || msg.title ? `<cite><strong>${msg.author || msg.title}</strong></cite>` : '') : ''}
             </div>
         `;
@@ -509,6 +542,7 @@ function renderStandardSlide(msg: CarouselItem): string {
 
 function renderEvents(events: EventItem[]) {
     const carousel = document.getElementById('events-carousel');
+    const section = document.getElementById('events-section');
     if (!carousel) return;
 
     if (!events || events.length === 0) {
@@ -516,28 +550,44 @@ function renderEvents(events: EventItem[]) {
         return;
     }
 
-    // Sort events by date
     const sortedEvents = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Chunk into 4 for paging
-    const isMobile = window.innerWidth <= 768;
-    const eventChunkSize = isMobile ? 1 : 4;
-    const chunks: EventItem[][] = [];
-    for (let i = 0; i < sortedEvents.length; i += eventChunkSize) {
-        chunks.push(sortedEvents.slice(i, i + eventChunkSize));
-    }
-
+    // Step 1: render flat — all events stacked vertically
+    section?.classList.remove('carousel-mode');
     carousel.innerHTML = `
-        <div class="carousel-indicators event-indicators"></div>
-        ${chunks.map((chunk, index) => `
-            <div class="carousel-slide ${index === 0 ? 'active' : ''}">
-                ${chunk.map(event => renderEventCard(event)).join('')}
-            </div>
-        `).join('')}
+        <div class="carousel-indicators event-indicators" style="display:none;"></div>
+        <div class="carousel-slide active events-flat-list">
+            ${sortedEvents.map(event => renderEventCard(event)).join('')}
+        </div>
     `;
 
-    // Start carousel with indicators and auto-play
-    initCarousel('events-carousel');
+    // Step 2: after layout, check if content overflows the section
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        const eventsSection = document.querySelector<HTMLElement>('.horizontal-events-section');
+        const overflows = eventsSection
+            ? eventsSection.scrollHeight > eventsSection.clientHeight + 4
+            : false;
+
+        if (overflows) {
+            // Switch to carousel mode
+            section?.classList.add('carousel-mode');
+            const isMobile = window.innerWidth <= 768;
+            const chunkSize = isMobile ? 1 : 2;
+            const chunks: EventItem[][] = [];
+            for (let i = 0; i < sortedEvents.length; i += chunkSize) {
+                chunks.push(sortedEvents.slice(i, i + chunkSize));
+            }
+            carousel.innerHTML = `
+                <div class="carousel-indicators event-indicators"></div>
+                ${chunks.map((chunk, index) => `
+                    <div class="carousel-slide ${index === 0 ? 'active' : ''}">
+                        ${chunk.map(event => renderEventCard(event)).join('')}
+                    </div>
+                `).join('')}
+            `;
+            initCarousel('events-carousel');
+        }
+    }));
 }
 
 function renderEventCard(event: EventItem): string {
@@ -687,7 +737,7 @@ function initCarousel(carouselId: string) {
     function getSlideDuration(index: number): number {
         const slide = slides[index] as HTMLElement;
         const type = slide?.dataset?.slideType || '';
-        if (type === 'traffic' || type === 'recruits') return BASE_DURATION * 2;
+        if (type === 'traffic' || type === 'recruits' || type === 'weather') return BASE_DURATION * 2;
         if (type === 'message-image') return BASE_DURATION * 1.5;
         return BASE_DURATION;
     }
@@ -741,12 +791,19 @@ function initEditModal() {
         }
     });
 
+    const modalTitle = modal.querySelector('h2');
+
     // Close Modal
     function closeModal() {
         if (modal) modal.style.display = 'none';
         if (categorySelect) categorySelect.value = "";
         if (dynamicForm) dynamicForm.innerHTML = "";
-        if (saveBtn) saveBtn.disabled = true;
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Sauvegarder'; }
+        if (modalTitle) modalTitle.textContent = 'Ajouter un nouvel élément';
+        currentEditItem = null;
+        keptImages = {};
+        const existing = document.getElementById('existing-items-container');
+        if (existing) existing.remove();
     }
 
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -870,8 +927,17 @@ function initEditModal() {
             }
         }
 
-        // Basic Validation
-        if (category === 'recruits' && (!uploadedPaths || uploadedPaths.length === 0)) {
+        // In edit mode: use kept images (thumbnails not removed by user)
+        if (currentEditItem && uploadedPaths.length === 0) {
+            for (const [fieldName, paths] of Object.entries(keptImages)) {
+                if (paths.length > 0) {
+                    formData[fieldName] = fieldName === 'images' ? paths : paths[0];
+                }
+            }
+        }
+
+        // Basic Validation (skip photo check in edit mode — existing photo is kept)
+        if (!currentEditItem && category === 'recruits' && (!uploadedPaths || uploadedPaths.length === 0)) {
             alert('La photo est obligatoire pour une nouvelle recrue !');
             return;
         }
@@ -879,28 +945,32 @@ function initEditModal() {
         // Send to Server
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/save', {
+            const isEdit = !!currentEditItem;
+            const url = isEdit ? '/api/update' : '/api/save';
+            const body = isEdit
+                ? { category, originalIndex: currentEditItem!.index, updatedItem: formData }
+                : { category, item: formData };
+
+            if (isEdit) {
+                console.log('[save] edit mode — index:', currentEditItem!.index, 'formData keys:', Object.keys(formData), 'formData:', JSON.stringify(formData));
+            }
+
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    category: category,
-                    item: formData
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
             });
 
             if (response.ok) {
-                alert('Item ajouté avec succés!');
+                alert(isEdit ? 'Élément mis à jour !' : 'Item ajouté avec succès !');
                 closeModal();
-                loadData(); // Refresh UI
+                loadData();
             } else {
-                alert('Impossible d ajouter cette donnée.');
+                alert(isEdit ? 'Impossible de mettre à jour.' : 'Impossible d\'ajouter cette donnée.');
             }
         } catch (error) {
             console.error('Error saving data:', error);
-            alert('Erreur en ajoutant les données.');
+            alert('Erreur lors de l\'enregistrement.');
         }
     });
 }
@@ -956,16 +1026,43 @@ function renderFormFields(category: string, container: HTMLElement) {
         <div class="form-group">
             <label for="${field.name}">${field.label}</label>
             ${field.type === 'textarea'
-            ? `<textarea id="${field.name}" name="${field.name}" rows="3"></textarea>`
-            : `<input type="${field.type}" id="${field.name}" name="${field.name}" 
-                value="${field.value || ''}" 
-                ${field.multiple ? 'multiple' : ''} 
+            ? `<div class="rich-editor-toolbar">
+                    <button type="button" class="rich-editor-btn" data-cmd="bold" title="Gras"><b>B</b></button>
+                    <button type="button" class="rich-editor-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                    <button type="button" class="rich-editor-btn" data-cmd="underline" title="Souligné"><u>U</u></button>
+                    <button type="button" class="rich-editor-btn" data-cmd="insertUnorderedList" title="Liste à puces">&#8226; Liste</button>
+                    <button type="button" class="rich-editor-btn" data-cmd="insertOrderedList" title="Liste numérotée">1. Liste</button>
+               </div>
+               <div class="rich-editor-content" contenteditable="true" data-for="${field.name}" spellcheck="true"></div>
+               <textarea id="${field.name}" name="${field.name}" style="display:none;"></textarea>`
+            : field.type === 'file'
+            ? `<input type="file" id="${field.name}" name="${field.name}" ${field.multiple ? 'multiple' : ''}>
+               <div class="image-thumbnails-preview" data-field="${field.name}"></div>`
+            : `<input type="${field.type}" id="${field.name}" name="${field.name}"
+                value="${field.value || ''}"
+                ${field.multiple ? 'multiple' : ''}
                 ${field.type === 'checkbox' && field.value ? 'checked' : ''}>`
         }
         </div>
     `).join('');
 
     container.innerHTML = html;
+
+    // Wire up rich text editors: sync contenteditable → hidden textarea
+    container.querySelectorAll<HTMLElement>('.rich-editor-content').forEach(editor => {
+        const targetName = editor.dataset.for!;
+        const textarea = container.querySelector<HTMLTextAreaElement>(`#${targetName}`)!;
+        editor.addEventListener('input', () => { textarea.value = editor.innerHTML; });
+
+        const toolbar = editor.previousElementSibling!;
+        toolbar.querySelectorAll<HTMLButtonElement>('.rich-editor-btn').forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // keep editor focused
+                document.execCommand(btn.dataset.cmd!, false);
+                textarea.value = editor.innerHTML;
+            });
+        });
+    });
 }
 
 function renderExistingItems(category: string, items: any[], container: HTMLElement) {
@@ -994,28 +1091,52 @@ function renderExistingItems(category: string, items: any[], container: HTMLElem
         let label = '';
         if (item.title) label = item.title;
         else if (item.name) label = item.name;
-        else if (item.text) label = item.text.substring(0, 30) + '...';
+        else if (item.text) label = item.text.replace(/<[^>]*>/g, '').substring(0, 40) + '...';
 
         const span = document.createElement('span');
         span.textContent = label;
+        span.style.flex = '1';
+        span.style.marginRight = '8px';
+        span.style.overflow = 'hidden';
+        span.style.textOverflow = 'ellipsis';
+        span.style.whiteSpace = 'nowrap';
         li.appendChild(span);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Supprimer';
-        deleteBtn.style.backgroundColor = '#ff4444';
-        deleteBtn.style.color = 'white';
-        deleteBtn.style.border = 'none';
-        deleteBtn.style.padding = '5px 10px';
-        deleteBtn.style.borderRadius = '3px';
-        deleteBtn.style.cursor = 'pointer';
+        const btnGroup = document.createElement('div');
+        btnGroup.style.display = 'flex';
+        btnGroup.style.gap = '6px';
+        btnGroup.style.flexShrink = '0';
 
+        // Edit (pen) button
+        const editBtn = document.createElement('button');
+        editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+        editBtn.className = 'item-action-btn item-edit-btn';
+        editBtn.title = 'Modifier';
+        editBtn.addEventListener('click', () => {
+            currentEditItem = { category, original: item, index };
+            const modalTitle = document.querySelector('#edit-modal h2');
+            const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+            if (modalTitle) modalTitle.textContent = 'Modifier un élément';
+            if (saveBtn) saveBtn.textContent = 'Mettre à jour';
+            resetFormFields(container);
+            populateFormFields(item, container);
+            container.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        deleteBtn.className = 'item-action-btn item-delete-btn';
+        deleteBtn.title = 'Supprimer';
         deleteBtn.addEventListener('click', async () => {
-            if (confirm('Es tu sure de vouloir supprimer cet item?')) {
+            if (confirm('Supprimer cet élément ?')) {
                 await deleteItem(category, item);
             }
         });
 
-        li.appendChild(deleteBtn);
+        btnGroup.appendChild(editBtn);
+        btnGroup.appendChild(deleteBtn);
+        li.appendChild(btnGroup);
         list.appendChild(li);
     });
 
@@ -1023,6 +1144,84 @@ function renderExistingItems(category: string, items: any[], container: HTMLElem
     if (container.parentNode) {
         container.parentNode.insertBefore(listContainer, container.nextSibling);
     }
+}
+
+function resetFormFields(container: HTMLElement) {
+    keptImages = {};
+
+    container.querySelectorAll<HTMLInputElement>('input:not([type="file"])').forEach(input => {
+        if (input.type === 'checkbox') input.checked = false;
+        else input.value = '';
+    });
+
+    container.querySelectorAll<HTMLElement>('.rich-editor-content').forEach(editor => {
+        editor.innerHTML = '';
+        const textarea = container.querySelector<HTMLTextAreaElement>(`#${editor.dataset.for}`);
+        if (textarea) textarea.value = '';
+    });
+
+    container.querySelectorAll<HTMLElement>('.image-thumbnails-preview').forEach(p => { p.innerHTML = ''; });
+    container.querySelectorAll<HTMLInputElement>('input[type="file"]').forEach(input => { input.value = ''; });
+}
+
+function populateFormFields(item: any, container: HTMLElement) {
+    // Plain inputs
+    container.querySelectorAll<HTMLInputElement>('input:not([type="file"])').forEach(input => {
+        const val = item[input.name];
+        if (val === undefined) return;
+        if (input.type === 'checkbox') {
+            input.checked = !!val;
+        } else {
+            input.value = String(val);
+        }
+    });
+
+    // Rich text editors
+    container.querySelectorAll<HTMLElement>('.rich-editor-content').forEach(editor => {
+        const name = editor.dataset.for!;
+        const val = item[name];
+        if (val !== undefined) {
+            editor.innerHTML = val;
+            const textarea = container.querySelector<HTMLTextAreaElement>(`#${name}`);
+            if (textarea) textarea.value = val;
+        }
+    });
+
+    // Image thumbnails
+    container.querySelectorAll<HTMLElement>('.image-thumbnails-preview').forEach(preview => {
+        const fieldName = preview.dataset.field!;
+        const raw = item[fieldName];
+        if (!raw) return;
+        const paths: string[] = Array.isArray(raw) ? raw : [raw];
+        keptImages[fieldName] = [...paths];
+        renderImageThumbnails(preview, fieldName);
+    });
+}
+
+function renderImageThumbnails(container: HTMLElement, fieldName: string) {
+    container.innerHTML = '';
+    (keptImages[fieldName] || []).forEach(src => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'thumb-wrapper';
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.className = 'thumb-img';
+        img.alt = '';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'thumb-remove';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.addEventListener('click', () => {
+            keptImages[fieldName] = keptImages[fieldName].filter(p => p !== src);
+            wrapper.remove();
+        });
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(removeBtn);
+        container.appendChild(wrapper);
+    });
 }
 
 async function deleteItem(category: string, item: any) {
@@ -1058,7 +1257,7 @@ async function deleteItem(category: string, item: any) {
 /* --- Weather Widget Logic --- */
 
 async function fetchWeather() {
-    const container = document.getElementById('weather-container');
+    const container = document.getElementById('carousel-weather-container');
     if (!container) return;
 
     // Millery coordinates

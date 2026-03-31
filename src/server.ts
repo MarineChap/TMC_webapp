@@ -319,6 +319,37 @@ app.post('/api/save', authenticate, async (req, res) => {
     }
 });
 
+app.post('/api/update', authenticate, async (req, res) => {
+    try {
+        const { category, originalIndex, updatedItem } = req.body;
+        console.log(`[update] category=${category} index=${originalIndex} updatedItem keys=${Object.keys(updatedItem || {}).join(',')}`);
+        const dbData = await loadDb();
+        const actingUser = (req as any).user.username;
+
+        if (!dbData[category]) {
+            return res.status(400).json({ detail: "Invalid category" });
+        }
+
+        if (typeof originalIndex !== 'number' || isNaN(originalIndex) || originalIndex < 0 || originalIndex >= dbData[category].length) {
+            console.error(`[update] bad index: ${originalIndex} (category length: ${dbData[category].length})`);
+            return res.status(404).json({ detail: "Item not found" });
+        }
+
+        dbData[category][originalIndex] = updatedItem;
+
+        if (category === 'events') {
+            dbData.events.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        }
+
+        await saveDb(dbData);
+        addLog('item_updated', { category, username: actingUser, name: updatedItem.name || updatedItem.title || updatedItem.text?.substring(0, 50) });
+
+        res.json({ status: "success" });
+    } catch (e: any) {
+        res.status(500).json({ detail: e.message || String(e) });
+    }
+});
+
 app.post('/api/delete', authenticate, async (req, res) => {
     try {
         const { category, item } = req.body;

@@ -5,14 +5,6 @@
       "author": "marine"
     },
     {
-      "text": "Pensez à faire vos ICPs ! ",
-      "author": "marine"
-    },
-    {
-      "text": "Pensez à votre visite médicale !",
-      "author": "marine"
-    },
-    {
       "text": "",
       "image": "assets/images/Capture dâÃ©cran du 2026-02-25 21-46-11.png",
       "author": "marine"
@@ -26,6 +18,32 @@
         "assets/images/Capture dâÃ©cran du 2026-03-04 14-46-32.png"
       ],
       "author": "marine"
+    },
+    {
+      "text": "lalalalala ",
+      "images": [
+        "assets/images/BANNIERE-FB-2.jpg"
+      ],
+      "author": "marine"
+    },
+    {
+      "text": "lalalalallalalalla",
+      "images": [
+        "assets/images/BANNIERE-FB-2.jpg",
+        "assets/images/PSSM_presse-Ecrite.pdf",
+        "assets/images/Wallpaper_desktopÂ©CathyKarsenty_avecÂ©.jpg"
+      ],
+      "author": "marine"
+    },
+    {
+      "text": "sqdsfdgh",
+      "displayAuthor": true,
+      "author": "marine"
+    },
+    {
+      "text": "Hello,&nbsp;<div>j'ai un trés long message à afficher.&nbsp;<br><ul><li>1 je suis la</li><li>2 lal lalal</li><li>3 .LLL</li></ul><div><b><br></b></div></div><div><b>Importaaaaant !&nbsp;</b></div><div><b><br></b></div><div><b>jd,sqlck,rsopf</b></div><div><b>opjepor</b></div><div><br></div><div><br></div><div><br></div>",
+      "displayAuthor": false,
+      "author": "marine"
     }
   ],
   "amicalistMessages": [
@@ -35,6 +53,10 @@
     },
     {
       "text": "Pensez à payer votre adhésion ! 🤑",
+      "author": "marine"
+    },
+    {
+      "text": "qdsfegbffhn",
       "author": "marine"
     }
   ],
@@ -66,51 +88,7 @@
       "description": "ddd"
     }
   ],
-  "events": [
-    {
-      "date": "2026-02-26T11:16",
-      "title": "cghvnv",
-      "description": "hgvjbjh\n\n - marine",
-      "image": "assets/images/1a85225b-145d-456f-8c83-a83e1bb6752f.png"
-    },
-    {
-      "date": "2026-03-04T14:30",
-      "title": "test"
-    },
-    {
-      "date": "2026-03-04T19:27",
-      "title": "test2"
-    },
-    {
-      "date": "2026-03-04T19:58",
-      "title": "asdzqfsegrdtfh",
-      "description": "dsfgh\n\n - marine"
-    },
-    {
-      "date": "2026-02-26T11:16",
-      "title": "cghvnv",
-      "description": "hgvjbjh\n\n - marine",
-      "image": "assets/images/1a85225b-145d-456f-8c83-a83e1bb6752f.png"
-    },
-    {
-      "date": "2026-03-04T14:30",
-      "title": "test"
-    },
-    {
-      "date": "2026-03-04T19:27",
-      "title": "test2"
-    },
-    {
-      "date": "2026-03-04T19:58",
-      "title": "asdzqfsegrdtfh",
-      "description": "dsfgh\n\n - marine"
-    }
-  ],
-  "flashNews": [
-    {
-      "text": "ALERTE INFO : Incendie majeur en cours - Secours sur place.",
-      "endTime": "2026-12-31T23:59",
-      "startTime": "2026-03-07T21:12"
-    }
-  ]
+  "events": [],
+  "flashNews": [],
+  "sdmisNews": []
 }
