@@ -51,7 +51,7 @@ async function loadDb() {
     }
     catch (e) {
         if (e.code === 'ENOENT') {
-            return { chiefMessages: [], amicalistMessages: [], recruits: [], events: [], flashNews: [], sdmisNews: [] };
+            return { chiefMessages: [], amicalistMessages: [], recruits: [], events: [], flashNews: [] };
         }
         throw e;
     }
@@ -281,6 +281,31 @@ app.post('/api/save', authenticate, async (req, res) => {
         else {
             addLog('item_added', { category, username: actingUser, name: item.name || item.title });
         }
+        res.json({ status: "success" });
+    }
+    catch (e) {
+        res.status(500).json({ detail: e.message || String(e) });
+    }
+});
+app.post('/api/update', authenticate, async (req, res) => {
+    try {
+        const { category, originalIndex, updatedItem } = req.body;
+        console.log(`[update] category=${category} index=${originalIndex} updatedItem keys=${Object.keys(updatedItem || {}).join(',')}`);
+        const dbData = await loadDb();
+        const actingUser = req.user.username;
+        if (!dbData[category]) {
+            return res.status(400).json({ detail: "Invalid category" });
+        }
+        if (typeof originalIndex !== 'number' || isNaN(originalIndex) || originalIndex < 0 || originalIndex >= dbData[category].length) {
+            console.error(`[update] bad index: ${originalIndex} (category length: ${dbData[category].length})`);
+            return res.status(404).json({ detail: "Item not found" });
+        }
+        dbData[category][originalIndex] = updatedItem;
+        if (category === 'events') {
+            dbData.events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        }
+        await saveDb(dbData);
+        addLog('item_updated', { category, username: actingUser, name: updatedItem.name || updatedItem.title || updatedItem.text?.substring(0, 50) });
         res.json({ status: "success" });
     }
     catch (e) {

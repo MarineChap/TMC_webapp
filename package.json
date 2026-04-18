@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npm run build:server",
     "build:server": "tsc src/server.ts --outDir dist/server --esModuleInterop --moduleResolution node --target es2020 --module esnext --skipLibCheck",
     "server": "tsx src/server.ts",
     "start": "node dist/server/server.js",
