@@ -552,42 +552,12 @@ function renderEvents(events: EventItem[]) {
 
     const sortedEvents = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Step 1: render flat — all events stacked vertically
     section?.classList.remove('carousel-mode');
     carousel.innerHTML = `
-        <div class="carousel-indicators event-indicators" style="display:none;"></div>
         <div class="carousel-slide active events-flat-list">
             ${sortedEvents.map(event => renderEventCard(event)).join('')}
         </div>
     `;
-
-    // Step 2: after layout, check if content overflows the section
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        const eventsSection = document.querySelector<HTMLElement>('.horizontal-events-section');
-        const overflows = eventsSection
-            ? eventsSection.scrollHeight > eventsSection.clientHeight + 4
-            : false;
-
-        if (overflows) {
-            // Switch to carousel mode
-            section?.classList.add('carousel-mode');
-            const isMobile = window.innerWidth <= 768;
-            const chunkSize = isMobile ? 1 : 2;
-            const chunks: EventItem[][] = [];
-            for (let i = 0; i < sortedEvents.length; i += chunkSize) {
-                chunks.push(sortedEvents.slice(i, i + chunkSize));
-            }
-            carousel.innerHTML = `
-                <div class="carousel-indicators event-indicators"></div>
-                ${chunks.map((chunk, index) => `
-                    <div class="carousel-slide ${index === 0 ? 'active' : ''}">
-                        ${chunk.map(event => renderEventCard(event)).join('')}
-                    </div>
-                `).join('')}
-            `;
-            initCarousel('events-carousel');
-        }
-    }));
 }
 
 function renderEventCard(event: EventItem): string {

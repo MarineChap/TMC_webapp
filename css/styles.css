@@ -721,8 +721,8 @@ section h2::after {
     /* Hide old row logic, we use slides now */
 }
 
-/* Flat list mode (few events — no carousel) */
-#events-carousel .events-flat-list {
+/* Flat list mode — higher specificity (1,3,0) beats #events-carousel .carousel-slide.active (1,2,0) */
+#events-carousel .carousel-slide.active.events-flat-list {
     display: flex;
     flex-direction: column;
     gap: 1vh;
@@ -734,24 +734,6 @@ section h2::after {
     flex: none;
     width: 100%;
     height: auto;
-}
-
-/* Carousel mode overrides (many events — paginated) */
-.horizontal-events-section.carousel-mode {
-    overflow: hidden;
-}
-
-.horizontal-events-section.carousel-mode .event-indicators-container {
-    flex: 1 !important;
-    height: 100% !important;
-}
-
-.horizontal-events-section.carousel-mode #events-carousel .carousel-slide.active {
-    height: 100%;
-}
-
-.horizontal-events-section.carousel-mode .event-card {
-    height: 100%;
 }
 
 /* Ensure slides in events area use the full space */
